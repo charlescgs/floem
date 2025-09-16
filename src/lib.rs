@@ -226,7 +226,7 @@ pub use ext_event::async_signal;
 pub use floem_reactive as reactive;
 pub use floem_renderer::gpu_resources::GpuResources;
 pub use floem_renderer::text;
-pub use floem_renderer::Renderer;
+pub use floem_renderer::{Renderer, Img};
 pub use floem_renderer::Svg as RendererSvg;
 pub use id::ViewId;
 pub use muda;
