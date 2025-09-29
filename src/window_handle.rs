@@ -19,13 +19,13 @@ use winit::{
 };
 
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+use crate::menu::MudaMenu;
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 use crate::reactive::SignalWith;
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 use crate::unit::UnitExt;
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 use crate::views::{container, stack};
-#[cfg(any(target_os = "linux", target_os = "freebsd"))]
-use crate::menu::MudaMenu;
 use crate::{
     app::UserEvent,
     app_state::AppState,
@@ -1500,7 +1500,9 @@ fn context_menu_view(
                             }
                             context_menu.set(None);
                             if let Some(id) = id.clone() {
-                                add_app_update_event(AppUpdateEvent::MenuAction { action_id: id.into() });
+                                add_app_update_event(AppUpdateEvent::MenuAction {
+                                    action_id: id.into(),
+                                });
                             }
                         })
                         .disabled(move || !enabled)
