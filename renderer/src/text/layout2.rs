@@ -1,42 +1,30 @@
 use std::{ops::Range, sync::LazyLock};
 
 use crate::text::AttrsList;
-use cosmic_text::{
-    // Affinity,
-    // Align,
-    Buffer,
-    BufferLine,
-    Cursor,
-    FontSystem,
-    LayoutCursor,
-    LayoutGlyph,
-    LineEnding,
-    LineIter,
-    Metrics,
-    Scroll,
-    Shaping,
-    Wrap,
-};
 use parley::{
-    Affinity, Alignment, TreeBuilder,
+    Affinity, Alignment, FontContext
 };
-// use parley::{GlyphRun, layout::Cursor};
+use parley::Cursor;
+use parley::Glyph;
 use parking_lot::Mutex;
 use peniko::kurbo::{Point, Size};
+use peniko::Brush;
 
-pub static FONT_SYSTEM: LazyLock<Mutex<FontSystem>> = LazyLock::new(|| {
-    let mut font_system = FontSystem::new();
-    #[cfg(target_os = "macos")]
-    font_system.db_mut().set_sans_serif_family("Helvetica Neue");
-    #[cfg(target_os = "windows")]
-    font_system.db_mut().set_sans_serif_family("Segoe UI");
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    font_system.db_mut().set_sans_serif_family("Noto Sans");
+pub static FONT_SYSTEM2: LazyLock<Mutex<FontContext>> = LazyLock::new(|| {
+    let font_system = FontContext::new();
+    // let mut font_system = FontContext::new();
+    // #[cfg(target_os = "macos")]
+    // font_system.db_mut().set_sans_serif_family("Helvetica Neue");
+    // #[cfg(target_os = "windows")]
+    // font_system.collection.;
+    // font_system.db_mut().set_sans_serif_family("Segoe UI");
+    // #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    // font_system.db_mut().set_sans_serif_family("Noto Sans");
     Mutex::new(font_system)
 });
 
 /// A line of visible text for rendering
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct LayoutRun<'a> {
     /// The index of the original text line
     pub line_i: usize,
@@ -45,7 +33,8 @@ pub struct LayoutRun<'a> {
     /// True if the original paragraph direction is RTL
     pub rtl: bool,
     /// The array of layout glyphs to draw
-    pub glyphs: &'a [LayoutGlyph],
+    pub glyphs: &'a [cosmic_text::LayoutGlyph],
+    pub line: parley::Line<'a, peniko::Brush>,
     /// Maximum ascent of the glyphs in line
     pub max_ascent: f32,
     /// Maximum descent of the glyphs in line
@@ -58,6 +47,12 @@ pub struct LayoutRun<'a> {
     pub line_height: f32,
     /// Width of line
     pub line_w: f32,
+}
+
+
+pub struct LayourRun2<'a> {
+    line: parley::Line<'a, Brush>,
+
 }
 
 impl LayoutRun<'_> {
@@ -212,7 +207,6 @@ pub struct HitPoint {
     /// end of that line, and a click below the last line will resolve to a
     /// position in that line.
     pub is_inside: bool,
-    pub affinity: Affinity,
 }
 
 #[derive(Clone, Debug)]
@@ -397,14 +391,12 @@ impl TextLayout {
                 line: cursor.line,
                 index: cursor.index,
                 is_inside,
-                affinity: cursor.affinity,
             }
         } else {
             HitPoint {
                 line: 0,
                 index: 0,
                 is_inside: false,
-                affinity: Affinity::Before,
             }
         }
     }
