@@ -996,7 +996,7 @@ pub struct PaintCx<'a> {
     pub(crate) saved_clips: Vec<Option<RoundedRect>>,
     pub(crate) saved_z_indexes: Vec<Option<i32>>,
     pub gpu_resources: Option<GpuResources>,
-    pub window: Option<Arc<dyn Window>>,
+    pub window: Arc<dyn Window>,
 }
 
 impl PaintCx<'_> {
