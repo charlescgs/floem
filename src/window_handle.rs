@@ -1248,8 +1248,10 @@ impl WindowHandle {
         use raw_window_handle::RawWindowHandle;
 
         if let RawWindowHandle::Win32(handle) = self.window.window_handle().unwrap().as_raw() {
+            println!("INITED FOR HWND");
             unsafe {
                 let _ = menu.init_for_hwnd(isize::from(handle.hwnd));
+                let _ = menu.show_for_hwnd(isize::from(handle.hwnd));
             }
         }
     }
