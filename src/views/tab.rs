@@ -132,8 +132,10 @@ impl<T> View for Tab<T> {
 
     fn style_pass(&mut self, cx: &mut StyleCx<'_>) {
         for (i, child) in self.id.children().into_iter().enumerate() {
-            if i == self.active {
-                cx.style_view(child);
+            if let Some(a) = self.active {
+                if a == i {
+                    cx.style_view(child);
+                }
             }
             let child_view = child.state();
             let mut child_view = child_view.borrow_mut();
