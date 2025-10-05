@@ -466,12 +466,12 @@ impl Layer {
             return;
         };
 
-        let image_data = img.img.data.data();
-        let mut pixmap = try_ret!(Pixmap::new(img.img.width, img.img.height));
+        let image_data = &img.img.image;
+        let mut pixmap = try_ret!(Pixmap::new(img.img.image.width, img.img.image.height));
         for (a, b) in pixmap
             .pixels_mut()
             .iter_mut()
-            .zip(image_data.chunks_exact(4))
+            .zip(image_data.data.data().chunks_exact(4))
         {
             *a = tiny_skia::Color::from_rgba8(b[0], b[1], b[2], b[3])
                 .premultiply()
@@ -653,7 +653,7 @@ impl<W: raw_window_handle::HasWindowHandle + raw_window_handle::HasDisplayHandle
         self.layers.iter_mut().for_each(|l| l.clear_clip());
     }
 
-    fn finish(&mut self) -> Option<peniko::Image> {
+    fn finish(&mut self) -> Option<peniko::ImageBrush> {
         // Remove cache entries which were not accessed.
         IMAGE_CACHE.with_borrow_mut(|ic| ic.retain(|_, (c, _)| *c == self.cache_color));
         GLYPH_CACHE.with_borrow_mut(|gc| gc.retain(|_, (c, _)| *c == self.cache_color));
@@ -751,24 +751,25 @@ fn brush_to_paint<'b>(brush: impl Into<BrushRef<'b>>) -> Option<Paint<'static>> 
                 .map(|s| GradientStop::new(s.offset, to_color(s.color.to_alpha_color())))
                 .collect();
             match g.kind {
-                GradientKind::Linear { start, end } => LinearGradient::new(
-                    to_point(start),
-                    to_point(end),
+                GradientKind::Linear(linear_gradient) => LinearGradient::new(
+                    to_point(linear_gradient.start),
+                    to_point(linear_gradient.end),
                     stops,
                     SpreadMode::Pad,
                     Transform::identity(),
                 )?,
-                GradientKind::Radial {
-                    start_center,
-                    start_radius: _,
-                    end_center,
-                    end_radius,
-                } => {
+                GradientKind::Radial(radial)
+                // {
+                //     start_center,
+                //     start_radius: _,
+                //     end_center,
+                //     end_radius,
+                => {
                     // FIXME: Doesn't use `start_radius`
                     RadialGradient::new(
-                        to_point(start_center),
-                        to_point(end_center),
-                        end_radius,
+                        to_point(radial.start_center),
+                        to_point(radial.end_center),
+                        radial.end_radius,
                         stops,
                         SpreadMode::Pad,
                         Transform::identity(),
@@ -809,6 +810,7 @@ enum BlendStrategy {
 fn determine_blend_strategy(peniko_mode: &BlendMode) -> BlendStrategy {
     match (peniko_mode.mix, peniko_mode.compose) {
         (Mix::Normal, compose) => BlendStrategy::SinglePass(compose_to_tiny_blend_mode(compose)),
+        #[allow(deprecated)]
         (Mix::Clip, compose) => BlendStrategy::MultiPass {
             first_pass: compose_to_tiny_blend_mode(compose),
             second_pass: TinyBlendMode::Source,
@@ -860,6 +862,7 @@ fn mix_to_tiny_blend_mode(mix: Mix) -> TinyBlendMode {
         Mix::Saturation => TinyBlendMode::Saturation,
         Mix::Color => TinyBlendMode::Color,
         Mix::Luminosity => TinyBlendMode::Luminosity,
+        #[allow(deprecated)]
         Mix::Clip => TinyBlendMode::SourceOver,
     }
 }
