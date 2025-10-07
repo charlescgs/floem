@@ -2,9 +2,9 @@ use peniko::kurbo::{Point, Size};
 #[cfg(windows)]
 use winit::platform::windows::BackdropType;
 #[cfg(windows)]
-use winit::platform::windows::CornerPreference;
-#[cfg(windows)]
 pub use winit::platform::windows::Color;
+#[cfg(windows)]
+use winit::platform::windows::CornerPreference;
 #[cfg(windows)]
 pub use winit::platform::windows::IconExtWindows;
 pub use winit::window::Fullscreen;
@@ -435,7 +435,6 @@ impl WebWindowConfig {
     }
 }
 
-
 /// Windows specific window configuration properties.
 #[derive(Debug, Clone)]
 pub struct WindowsWindowConfig {
@@ -470,7 +469,7 @@ impl Default for WindowsWindowConfig {
     }
 }
 
-impl WindowsWindowConfig {    
+impl WindowsWindowConfig {
     /// Turn window top resize border on or off (for windows without a title bar).
     /// By default this is enabled.
     pub fn top_resize_border(mut self, top_resize_border: bool) -> Self {
@@ -509,13 +508,13 @@ impl WindowsWindowConfig {
         self.set_taskbar_icon = set_taskbar_icon;
         self
     }
-    
+
     /// Whether to show or hide the window icon in the taskbar.
     pub fn set_skip_taskbar(mut self, set_skip_taskbar: bool) -> Self {
         self.set_skip_taskbar = set_skip_taskbar;
         self
     }
-    
+
     /// Sets system-drawn backdrop type.
     ///
     /// Requires Windows 11 build 22523+.
@@ -523,7 +522,7 @@ impl WindowsWindowConfig {
         self.set_system_backdrop = set_system_backdrop;
         self
     }
-   
+
     /// Sets the color of the window border.
     ///
     /// Supported starting with Windows 11 Build 22000.
@@ -531,7 +530,7 @@ impl WindowsWindowConfig {
         self.set_border_color = set_border_color;
         self
     }
-    
+
     /// Sets the background color of the title bar.
     ///
     /// Supported starting with Windows 11 Build 22000.
@@ -539,7 +538,7 @@ impl WindowsWindowConfig {
         self.set_title_background_color = set_title_background_color;
         self
     }
-    
+
     /// Sets the color of the window title.
     ///
     /// Supported starting with Windows 11 Build 22000.

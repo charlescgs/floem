@@ -15,7 +15,7 @@ use peniko::{
     kurbo::{Affine, Point, Rect, Shape},
     Blob, BrushRef, Color,
 };
-use peniko::{Compose, Fill, ImageAlphaType, ImageData, Mix};
+use peniko::{Fill, ImageAlphaType, ImageData, Mix};
 use vello::kurbo::Stroke;
 use vello::util::RenderSurface;
 use vello::wgpu::Device;
@@ -620,15 +620,13 @@ impl VelloRenderer {
             cursor += bytes_per_row as usize;
         }
 
-        Some(vello::peniko::ImageBrush::new(
-            ImageData {
-                data: Blob::new(Arc::new(cropped_buffer)),
-                format: vello::peniko::ImageFormat::Rgba8,
-                alpha_type: ImageAlphaType::AlphaPremultiplied,
-                width: self.surface.config.width,
-                height,
-            }
-        ))
+        Some(vello::peniko::ImageBrush::new(ImageData {
+            data: Blob::new(Arc::new(cropped_buffer)),
+            format: vello::peniko::ImageFormat::Rgba8,
+            alpha_type: ImageAlphaType::Alpha,
+            width: self.surface.config.width,
+            height,
+        }))
     }
 }
 
@@ -648,10 +646,7 @@ fn common_alpha_mask_scene(
 
     alpha_mask(&mut scene);
 
-    scene.push_clip_layer(
-        Affine::IDENTITY,
-        &Rect::from_origin_size((0., 0.), size),
-    );
+    scene.push_clip_layer(Affine::IDENTITY, &Rect::from_origin_size((0., 0.), size));
     // scene.push_layer(
     //     vello::peniko::BlendMode {
     //         mix: Mix::Clip,

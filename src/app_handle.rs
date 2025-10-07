@@ -382,7 +382,7 @@ impl ApplicationHandle {
         //     window_attributes = window_attributes.with_decorations(false);
         // }
 
-       #[cfg(target_os = "windows")]
+        #[cfg(target_os = "windows")]
         {
             use winit::platform::windows::WindowAttributesExtWindows;
             // use winit::platform::windows::WindowExtWindows;
@@ -391,7 +391,7 @@ impl ApplicationHandle {
                     .with_titlebar(false)
                     .with_top_resize_border(false);
             }
-                // .with_undecorated_shadow(undecorated_shadow)
+            // .with_undecorated_shadow(undecorated_shadow)
             if let Some(win_os) = win_os_config {
                 window_attributes = window_attributes
                     .with_corner_preference(win_os.corner_preference)

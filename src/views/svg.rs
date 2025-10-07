@@ -215,8 +215,8 @@ pub fn brush_to_css_string(brush: &Brush) -> String {
         }
         Brush::Gradient(gradient) => {
             match &gradient.kind {
-                GradientKind::Linear { start, end } => {
-                    let angle_degrees = calculate_angle(start, end);
+                GradientKind::Linear(linear) => {
+                    let angle_degrees = calculate_angle(&linear.start, &linear.end);
 
                     let mut css = format!("linear-gradient({angle_degrees}deg, ");
 

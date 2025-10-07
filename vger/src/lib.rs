@@ -10,14 +10,15 @@ use floem_renderer::{tiny_skia, Img, Renderer};
 use floem_vger_rs::{Image, PaintIndex, PixelFormat, Vger};
 use image::EncodableLayout;
 use peniko::kurbo::{Size, Stroke};
-use peniko::{Blob, ImageAlphaType, ImageData};
 use peniko::{
     color::palette,
     kurbo::{Affine, Point, Rect, Shape},
     BrushRef, Color, GradientKind,
 };
+use peniko::{Blob, ImageAlphaType, ImageData};
 use wgpu::{
-    Adapter, Device, DeviceType, PollStatus, Queue, StoreOp, Surface, SurfaceConfiguration, TextureFormat
+    Adapter, Device, DeviceType, PollStatus, Queue, StoreOp, Surface, SurfaceConfiguration,
+    TextureFormat,
 };
 
 pub struct VgerRenderer {
@@ -272,15 +273,13 @@ impl VgerRenderer {
             cursor += bytes_per_row as usize;
         }
 
-        Some(peniko::ImageBrush::new(
-            ImageData {
-                data: Blob::new(Arc::new(cropped_buffer)),
-                format: peniko::ImageFormat::Rgba8,
-                alpha_type: ImageAlphaType::AlphaPremultiplied,
-                width: self.config.width,
-                height,
-            }
-        ))
+        Some(peniko::ImageBrush::new(ImageData {
+            data: Blob::new(Arc::new(cropped_buffer)),
+            format: peniko::ImageFormat::Rgba8,
+            alpha_type: ImageAlphaType::Alpha,
+            width: self.config.width,
+            height,
+        }))
         // RgbaImage::from_raw(self.config.width, height, cropped_buffer).map(DynamicImage::ImageRgba8)
     }
 }

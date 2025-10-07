@@ -12,5 +12,6 @@ wgpu = { workspace = true }
 
 anyhow = "1.0"
 vello = "0.6.0"
-vello_svg = "0.7.1"
+# vello_svg = "0.8.0"
+vello_svg = { path = "D:/vello_svg" }
 floem_renderer = { path = "../renderer", version = "0.2.0" }
