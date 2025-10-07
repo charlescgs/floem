@@ -321,7 +321,6 @@ impl ApplicationHandle {
             mac_os_config,
             web_config,
             font_embolden,
-            win_os_config,
         }: WindowConfig,
     ) {
         let logical_size = size.map(|size| LogicalSize::new(size.width, size.height));
@@ -377,21 +376,9 @@ impl ApplicationHandle {
             window_attributes = window_attributes.with_max_surface_size(logical_max_size);
         }
 
-        // #[cfg(not(target_os = "macos"))]
-        // if !show_titlebar {
-        //     window_attributes = window_attributes.with_decorations(false);
-        // }
-
-        #[cfg(target_os = "windows")]
-        {
-            use winit::platform::windows::WindowExtWindows;
-            window_attributes = window_attributes.with_undecorated_shadow(undecorated_shadow)
-            // window.set_titlebar(false);
-            // window.set_system_backdrop(winit::platform::windows::BackdropType::None);
-            // window.set_top_resize_border(false);
-            // // window.set_enabled_buttons(WindowButtons::all());
-            // window.set_corner_preference(winit::platform::windows::CornerPreference::Round)
-            // ;
+        #[cfg(not(target_os = "macos"))]
+        if !show_titlebar {
+            window_attributes = window_attributes.with_decorations(false);
         }
 
         #[cfg(target_os = "macos")]
