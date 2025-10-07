@@ -634,7 +634,7 @@ fn common_alpha_mask_scene(
     size: Size,
     alpha_mask: impl FnOnce(&mut Scene),
     item: impl FnOnce(&mut Scene),
-    // compose_mode: Compose,
+    compose_mode: peniko::Compose,
 ) -> Scene {
     let mut scene = Scene::new();
     scene.push_layer(
@@ -646,16 +646,17 @@ fn common_alpha_mask_scene(
 
     alpha_mask(&mut scene);
 
-    scene.push_clip_layer(Affine::IDENTITY, &Rect::from_origin_size((0., 0.), size));
-    // scene.push_layer(
-    //     vello::peniko::BlendMode {
-    //         mix: Mix::Clip,
-    //         compose: compose_mode,
-    //     },
-    //     1.,
-    //     Affine::IDENTITY,
-    //     &Rect::from_origin_size((0., 0.), size),
-    // );
+    // scene.push_clip_layer(Affine::IDENTITY, &Rect::from_origin_size((0., 0.), size));
+    #[expect(deprecated, reason = "`push_clip_layer` doesn't work as intended")]
+    scene.push_layer(
+        vello::peniko::BlendMode {
+            mix: Mix::Clip,
+            compose: compose_mode,
+        },
+        1.,
+        Affine::IDENTITY,
+        &Rect::from_origin_size((0., 0.), size),
+    );
 
     item(&mut scene);
 
@@ -669,7 +670,7 @@ fn alpha_mask_scene(
     alpha_mask: impl FnOnce(&mut Scene),
     item: impl FnOnce(&mut Scene),
 ) -> Scene {
-    common_alpha_mask_scene(size, alpha_mask, item)
+    common_alpha_mask_scene(size, alpha_mask, item, peniko::Compose::SrcIn)
 }
 #[allow(unused)]
 fn invert_alpha_mask_scene(
@@ -677,7 +678,7 @@ fn invert_alpha_mask_scene(
     alpha_mask: impl FnOnce(&mut Scene),
     item: impl FnOnce(&mut Scene),
 ) -> Scene {
-    common_alpha_mask_scene(size, alpha_mask, item)
+    common_alpha_mask_scene(size, alpha_mask, item, peniko::Compose::SrcIn)
 }
 
 struct GlyphRun<'a> {
