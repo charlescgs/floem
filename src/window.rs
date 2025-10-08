@@ -414,6 +414,7 @@ impl From<MacOsOptionAsAlt> for winit::platform::macos::OptionAsAlt {
     }
 }
 
+#[cfg(windows)]
 // Windows specific window configuration properties.
 #[derive(Debug, Clone)]
 pub struct WinOSWindowConfig {
@@ -430,7 +431,7 @@ pub struct WinOSWindowConfig {
     pub(crate) set_title_background_color: Option<Color>,
     pub(crate) set_title_text_color: Option<Color>,
 }
-
+#[cfg(windows)]
 impl Default for WinOSWindowConfig {
     fn default() -> Self {
         Self {
@@ -445,7 +446,7 @@ impl Default for WinOSWindowConfig {
         }
     }
 }
-
+#[cfg(windows)]
 impl WinOSWindowConfig {
     // TODO: need to patch winit first
     // /// Turn window top resize border on or off (for windows without a title bar).
