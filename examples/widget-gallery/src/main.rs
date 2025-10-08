@@ -142,7 +142,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
             },
             Some(
                 WindowConfig::default()
-                    .size(Size::new(700.0, 400.0))
+                    .size(Size::new(900.0, 600.0))
                     .title(name.unwrap_or_default()),
             ),
         );
@@ -154,7 +154,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
         .style(|s| s.height_full().row_gap(5.0));
 
     let tab = tab(
-        move || active_tab.get(),
+        move || Some(active_tab.get()),
         move || tabs.get(),
         |it| *it,
         create_view,
