@@ -8,6 +8,9 @@ use floem::prelude::palette::css::WHITE;
 use floem::prelude::*;
 use floem::reactive::create_effect;
 use floem::style;
+use floem::style::CustomStyle;
+use floem::style::Style;
+use floem::style_class;
 
 use crate::form;
 use crate::form::form_item;
@@ -90,7 +93,7 @@ pub fn tab_view() -> impl IntoView {
         .height_full()
         .background(BG)
         .border_right(1.)
-        .border_color(css::BLACK)
+        .border_color(TEXT)
     );
 
 
@@ -107,37 +110,17 @@ pub fn tab_view() -> impl IntoView {
         h_stack((
             button("add tab").action(move || tab_action.update(|a| {*a = Action::Add;}))
                 .style(|s| s
-                    .background(BG_LIGHT)
-                    .border(0.)
-                    .border_bottom(0.5)
-                    .border_top(0.5)
-                    .border_right(0.)
-                    .border_left(0.)
-                    .border_top_color(WHITE)
-                    .border_bottom_color(BG_DARK)
-                    .box_shadow_blur(1.)
-                    .box_shadow_v_offset(2.)
-                    .box_shadow_color(BG_DARK)
+                    .apply(apply_button_class().apply_class(NewButtonClass))
                 ),
             button("remove tab").action(move || tab_action.update(|a| {*a = Action::Remove;}))
                 .style(|s| s
-                    .background(BG_LIGHT)
-                    .border(0.)
-                    .border_bottom(0.5)
-                    .border_top(0.5)
-                    .border_right(0.)
-                    .border_left(0.)
-                    .border_top_color(WHITE)
-                    .border_bottom_color(BG_DARK)
-                    .box_shadow_blur(1.)
-                    .box_shadow_v_offset(2.)
-                    .box_shadow_color(BG_DARK)
+                    .apply(apply_button_class().apply_class(NewButtonClass))
                 ),
         )).style(|s| s
             .height(40.px())
             .width_full()
             .border_bottom(1.)
-            .border_color(css::BLACK)
+            .border_color(BORDER)
             .background(BG)
             .padding(5.)
             .col_gap(5.)
@@ -156,18 +139,28 @@ pub fn tab_view() -> impl IntoView {
         .border(1.)
         .background(BG_DARK)
         .border_radius(6.)
-        .border_color(BLACK)
+        .border_color(BG_DARK)
+        .border_top(0.5)
+        .border_top_color(BG)
+        .box_shadow_spread(1.)
+        .box_shadow_blur(3.)
+        .box_shadow_v_offset(0.5)
+        .box_shadow_h_offset(-5.)
+        .box_shadow_color(BORDER)
+        .inset(5.px())
+        .inset_bottom(7.px())
     )
 }
 
 fn show_tab_content(tab: TabContent) -> impl IntoView {
     stack((
         label(move || format!("{} is now active!", tab.name))
-            .style(|s| s.font_size(18.).font_bold()),
+            .style(|s| s.font_size(18.).color(TEXT)),
     )).style(|s| s
         .size_full()
         .items_center()
         .justify_center()
+        .selectable(false)
     )
 }
 
@@ -177,24 +170,126 @@ fn tab_side_item(tab: TabContent, act_tab: RwSignal<Option<usize>>) -> impl Into
         .justify_center()
         .width_full()
         .height(36.px())
-        .background(BG_LIGHT)
+        .background(BG)
+        .color(TEXT_MUTED)
         .border(0.5)
         .border_radius(5.)
-        .hover(|s| s.border_color(BG_DARK).background(BG))
+        .selectable(false)
+        .hover(|s| s.border_color(BG_LIGHT).background(BG_LIGHT))
         .apply_if(
             act_tab.get().is_some_and(|a| a == tab.idx),
-            |s| s.background(BG_DARK).border_color(BG_LIGHT)
+            |s| s.background(BG_LIGHT).border_color(BG_DARK).color(TEXT)
         )
     )
 }
 
+style_class!(pub NewButtonClass);
 
-const BG_DARK: Color = hsl([0., 0., 90.]);
-const BG: Color = hsl([0., 0., 95.]);
-const BG_LIGHT: Color = hsl([0., 0., 100.]);
+fn apply_button_class() -> Style {
+    Style::new()
+        .class(NewButtonClass, |s| s
+            .background(BG_LIGHT)
+            .border(0.5)
+            .border_color(BG_LIGHT)
+            .border_bottom_color(BG_DARK)
+            .box_shadow_spread(-1.)
+            .box_shadow_blur(2.)
+            .box_shadow_v_offset(1.)
+            .box_shadow_color(TEXT_MUTED)
+            .padding_vert(7.px())
+            .hover(|s| s
+                .background(HIGHLIGHT)
+                .color(TEXT)
+                .border(0.5)
+                .border_color(BORDER)
+                // .border_top_color(BG_LIGHT)
+                // .border_bottom_color(BG_DARK)
+                .box_shadow_spread(-0.5)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT)
+            )
+            .active(|s| s
+                .background(BG)
+                .color(TEXT)
+                .border(0.5)
+                .border_color(BORDER)
+                // .border_bottom_color(BG_DARK)
+                // .border_top_color(BG)
+                .box_shadow_spread(-1.)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT)
+            )
+            .focus(|s| s
+                .background(BG_LIGHT)
+                .color(TEXT)
+                .border(0.5)
+                .border_color(BORDER)
+                // .border_top_color(BG)
+                .box_shadow_spread(-0.5)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT_MUTED)
+                .hover(|s| s
+                    .background(BG_LIGHT)
+                    .color(TEXT)
+                    .border(0.5)
+                    .border_color(HIGHLIGHT)
+                    // .border_bottom_color(BG_DARK)
+                    // .border_top_color(BG)
+                    .box_shadow_spread(-0.5)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT)
+                )
+            )
+            .focus_visible(|s| s
+                .background(BG_LIGHT)
+                .color(TEXT)
+                .border(0.5)
+                .border_color(BORDER)
+                .box_shadow_spread(-0.5)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT)
+            )
+            .selected(|s| s
+                .background(BG_LIGHT)
+                .color(TEXT)
+                .border(0.5)
+                .border_color(BORDER)
+                .box_shadow_spread(-0.5)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT)
+            )
+            .disabled(|s| s
+                .background(BG)
+                .color(TEXT_MUTED)
+                .border(0.5)
+                .border_color(BORDER)
+                // .border_top_color(BG_LIGHT)
+                // .border_bottom_color(BG_DARK)
+                .box_shadow_spread(-0.5)
+                .box_shadow_blur(2.)
+                .box_shadow_v_offset(1.)
+                .box_shadow_color(TEXT)
+            )
+        )
+}
 
-const TEXT: Color = hsl([0., 0., 5.]);
-const TEXT_MUTED: Color = hsl([0.0, 0., 30.]);
+
+const BG_DARK: Color = hsl([60., 3., 90.]);
+const BG: Color = hsl([60., 3., 95.]);
+const BG_LIGHT: Color = hsl([60., 3., 100.]);
+
+const BORDER: Color = hsl([60., 3., 60.]);
+const HIGHLIGHT: Color = hsl([60., 3., 100.]);
+
+const TEXT: Color = hsl([60., 3., 5.]);
+const TEXT_MUTED: Color = hsl([60., 3., 30.]);
+
 
 const fn hsl([h, s, l]: [f32; 3]) -> Color {
     let sat = s * 0.01;
