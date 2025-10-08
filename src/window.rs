@@ -231,7 +231,7 @@ impl WindowConfig {
         }
         self
     }
-    
+
     /// Set up Windows-OS specific configuration.  The passed closure will only be
     /// called on Windows.
     #[allow(unused_variables, unused_mut)]
