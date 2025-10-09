@@ -125,7 +125,7 @@ pub fn tab_view() -> impl IntoView {
                 .items_center()
         }),
         stack((tabs_view, tabs_content_view))
-            .style(|s| s.height(300.px()).width(400.px()).background(BG)),
+            .style(|s| s.height(400.px()).width(500.px()).background(BG)),
     ))
     .style(
         |s| {
@@ -151,48 +151,69 @@ pub fn tab_view() -> impl IntoView {
 }
 
 fn show_tab_content(tab: TabContent) -> impl IntoView {
-    v_stack((
+    stack((
         // label(move || format!("{} is now active!", tab.name))
         //     .style(|s| s.font_size(18.).color(TEXT)),
-        // empty().style(|s| s
-        //     .size(40.px(), 40.px())
-        //     .border(0.5)
-        //     .border_radius(0.6)
-        //     .background(HIGHLIGHT)
-        //     .box_shadow_top_offset(-5.)
-        //     .box_shadow_bottom_offset(30.)
-        //     .box_shadow_right_offset(20.)
-        //     .box_shadow_left_offset(-10.)
-        //     .box_shadow_spread(1.)
-        //     .box_shadow_blur(3.)
-        // ),
-        empty().style(|s| {
-            s.size(40.px(), 40.px())
-                .border(0.5)
-                .border_radius(0.6)
-                .background(HIGHLIGHT)
-                .box_shadow_top_offset(-5.)
-                .box_shadow_bottom_offset(30.)
-                .box_shadow_right_offset(20.)
-                .box_shadow_left_offset(-10.)
-                .box_shadow_spread(1.)
-                .box_shadow_blur(3.)
-                .apply_box_shadows([BoxShadow::new()
-                    .color(GREEN)
-                    .top_offset(5.)
-                    .bottom_offset(-30.)
-                    .right_offset(-20.)
-                    .left_offset(10.)
-                    .blur_radius(5.)
-                    .spread(10.)])
-        }),
+        empty().style(|s| s
+            .size(100.px(), 100.px())
+            .border(0.5)
+            .border_radius(6.)
+            .background(HIGHLIGHT)
+            .border_color(HIGHLIGHT)
+            .box_shadow_color(BG_DARK)
+            .box_shadow_top_offset(-15.)
+            .box_shadow_bottom_offset(4.)
+            .box_shadow_right_offset(-6.)
+            .box_shadow_left_offset(-6.)
+            .box_shadow_spread(5.)
+            .box_shadow_blur(4.)
+        ),
+        empty().style(|s|s
+            .size(100.px(), 100.px())
+            .border(0.5)
+            .border_radius(6.)
+            .background(HIGHLIGHT)
+            .border_color(HIGHLIGHT)
+            .apply_box_shadows([BoxShadow::new()
+                .color(BORDER.multiply_alpha(0.55))
+                .top_offset(-13.)
+                .bottom_offset(0.4)
+                .right_offset(-4.)
+                .left_offset(-4.)
+                .blur_radius(2.)
+                .spread(1.5)
+            ])
+        ),
+        empty().style(|s|s
+            .size(100.px(), 100.px())
+            .border(0.5)
+            .border_radius(6.)
+            .background(HIGHLIGHT)
+            .border_color(HIGHLIGHT)
+            .box_shadow_color(BG_DARK)
+            .box_shadow_top_offset(-15.)
+            .box_shadow_bottom_offset(4.)
+            .box_shadow_right_offset(-6.)
+            .box_shadow_left_offset(-6.)
+            .box_shadow_spread(5.)
+            .box_shadow_blur(4.)
+            .apply_box_shadows([BoxShadow::new()
+                .color(BORDER.multiply_alpha(0.55))
+                .top_offset(-13.)
+                .bottom_offset(0.4)
+                .right_offset(-4.)
+                .left_offset(-4.)
+                .blur_radius(2.)
+                .spread(1.5)
+            ])
+        )
     ))
     .style(|s| {
         s.size_full()
             .items_center()
             .justify_center()
             .selectable(false)
-            .row_gap(20.)
+            .col_gap(20.)
     })
 }
 
