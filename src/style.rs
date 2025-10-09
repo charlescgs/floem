@@ -2412,22 +2412,24 @@ impl Style {
         self.set(BoxShadowProp, value)
     }
 
-    /// Applies a shadow for the stylized element. Use [BoxShadow] builder
+    /// Applies one or more shadows for the stylized element. Use [BoxShadow] builder
     /// to construct each shadow.
     /// ```rust
     /// use floem::prelude::*;
     /// use floem::prelude::palette::css;
     /// use floem::style::BoxShadow;
     ///
-    /// empty().style(|s| s.apply_box_shadow(
-    ///    BoxShadow::new()
-    ///        .color(css::BLACK)
-    ///        .top_offset(5.)
-    ///        .bottom_offset(-30.)
-    ///        .right_offset(-20.)
-    ///        .left_offset(10.)
-    ///        .blur_radius(5.)
-    ///        .spread(10.)
+    /// empty().style(|s| s.apply_box_shadows(
+    ///     [
+    ///        BoxShadow::new()
+    ///            .color(css::BLACK)
+    ///            .top_offset(5.)
+    ///            .bottom_offset(-30.)
+    ///            .right_offset(-20.)
+    ///            .left_offset(10.)
+    ///            .blur_radius(5.)
+    ///            .spread(10.)
+    ///    ]
     /// ));
     /// ```
     /// ### Info
@@ -2444,9 +2446,10 @@ impl Style {
     ///     .box_shadow_blur(3.)
     /// );
     /// ```
-    pub fn apply_box_shadow(self, shadow: BoxShadow) -> Self {
+    pub fn apply_box_shadows(self, shadows: impl Into<SmallVec<[BoxShadow; 2]>>) -> Self {
         let mut value = self.get(BoxShadowProp);
-        value.push(shadow);
+        let mut others = shadows.into();
+        value.append(&mut others);
         self.set(BoxShadowProp, value)
     }
 
