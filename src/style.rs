@@ -1570,7 +1570,6 @@ pub struct BoxShadow {
 }
 
 impl BoxShadow {
-    /// Create new default shadow.
     pub fn new() -> Self {
         Self::default()
     }
