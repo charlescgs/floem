@@ -156,10 +156,10 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
         //     .style(|s| s.font_size(18.).color(TEXT)),
         empty().style(|s| s
             .size(100.px(), 100.px())
-            .border(0.5)
+            // .border(0.5)
+            // .border_color(HIGHLIGHT)
             .border_radius(6.)
             .background(HIGHLIGHT)
-            .border_color(HIGHLIGHT)
             .box_shadow_color(BG_DARK)
             .box_shadow_top_offset(-15.)
             .box_shadow_bottom_offset(4.)
@@ -170,10 +170,10 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
         ),
         empty().style(|s|s
             .size(100.px(), 100.px())
-            .border(0.5)
+            // .border(0.5)
+            // .border_color(HIGHLIGHT)
             .border_radius(6.)
             .background(HIGHLIGHT)
-            .border_color(HIGHLIGHT)
             .apply_box_shadows([BoxShadow::new()
                 .color(BORDER.multiply_alpha(0.55))
                 .top_offset(-13.)
@@ -186,10 +186,10 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
         ),
         empty().style(|s|s
             .size(100.px(), 100.px())
-            .border(0.5)
+            // .border(0.)
+            // .border_color(HIGHLIGHT)
             .border_radius(6.)
             .background(HIGHLIGHT)
-            .border_color(HIGHLIGHT)
             .box_shadow_color(BG_DARK)
             .box_shadow_top_offset(-15.)
             .box_shadow_bottom_offset(4.)
