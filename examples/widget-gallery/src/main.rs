@@ -321,12 +321,13 @@ fn app_view(window_id: WindowId) -> impl IntoView {
                 floem::close_window(window_id);
             }
         }
-    })
+    }).window_scale(|| 1.5)
 }
 
 fn main() {
+    let cfg = WindowConfig::default().size((1000., 800.));
     floem::Application::new()
-        .window(app_view, None)
+        .window(app_view, Some(cfg))
         .on_event(|ae| match ae {
             floem::AppEvent::WillTerminate => {
                 println!("terminating");
