@@ -12,10 +12,10 @@ pub mod images;
 pub mod inputs;
 pub mod labels;
 pub mod lists;
-pub mod tabs;
 pub mod radio_buttons;
 pub mod rich_text;
 pub mod slider;
+pub mod tabs;
 
 use floem::{
     action::set_window_menu,

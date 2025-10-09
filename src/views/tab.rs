@@ -144,17 +144,13 @@ impl<T> View for Tab<T> {
             child_view.combined_style = child_view.combined_style.clone().set(
                 DisplayProp,
                 match self.active {
-                    None => {
-                        Display::None
-                    }
-                    Some(active_index) if active_index == i => {
-                        display
-                    }
+                    None => Display::None,
+                    Some(active_index) if active_index == i => display,
                     Some(_) => {
                         // set display to none for non-active child
                         Display::None
                     }
-                }
+                },
             );
         }
     }
