@@ -4,29 +4,33 @@ use floem::peniko::color::Hsl;
 use floem::prelude::palette::css;
 use floem::prelude::palette::css::BLACK;
 use floem::prelude::palette::css::DARK_GRAY;
+use floem::prelude::palette::css::GREEN;
+use floem::prelude::palette::css::RED;
 use floem::prelude::palette::css::WHITE;
 use floem::prelude::*;
 use floem::reactive::create_effect;
 use floem::style;
+use floem::style::BoxShadow;
 use floem::style::CustomStyle;
 use floem::style::Style;
 use floem::style_class;
+use floem::unit::Px;
+use floem::unit::PxPct;
 
 use crate::form;
 use crate::form::form_item;
 
-
 #[derive(Clone)]
 struct TabContent {
     idx: usize,
-    name: String
+    name: String,
 }
 
 impl TabContent {
     fn new(tabs_count: usize) -> Self {
         Self {
             idx: tabs_count,
-            name: format!("Tab with index {tabs_count}")
+            name: format!("Tab with index {tabs_count}"),
         }
     }
 }
@@ -35,160 +39,186 @@ impl TabContent {
 enum Action {
     Add,
     Remove,
-    None
+    None,
 }
 
-
 pub fn tab_view() -> impl IntoView {
-    let tabs = RwSignal::new(vec!());
+    let tabs = RwSignal::new(vec![]);
     let active_tab = RwSignal::new(None::<usize>);
     let tab_action = RwSignal::new(Action::None);
 
-    create_effect(move |_| {
-        match tab_action.get() {
-            Action::Add => {
-                tabs.update(|tabs| {
-                    tabs.push(TabContent::new(tabs.len()))
-                });
-            },
-            Action::Remove => {
-                tabs.update(|tabs| {
-                    tabs.pop();
-                });
-            },
-            Action::None => ()
+    create_effect(move |_| match tab_action.get() {
+        Action::Add => {
+            tabs.update(|tabs| tabs.push(TabContent::new(tabs.len())));
         }
+        Action::Remove => {
+            tabs.update(|tabs| {
+                tabs.pop();
+            });
+        }
+        Action::None => (),
     });
 
-    let tabs_view = stack((
-        dyn_stack(
-            move || tabs.get(),
-            |tab| tab.idx,
-            move |tab| tab_side_item(tab.clone(), active_tab).on_click_stop(move |_| {
-                active_tab.update(|a| {*a = Some(tab.idx);});
+    let tabs_view = stack((dyn_stack(
+        move || tabs.get(),
+        |tab| tab.idx,
+        move |tab| {
+            tab_side_item(tab.clone(), active_tab).on_click_stop(move |_| {
+                active_tab.update(|a| {
+                    *a = Some(tab.idx);
+                });
             })
-        ).style(|s| s
-            .flex_col()
-            .width_full()
-            .row_gap(5.)
-        )
-        .scroll()
-        .on_click_stop(move |_| {
-            if active_tab.with_untracked(|act| act.is_some()) {
-                active_tab.set(None)
-            }
-        })
-        .style(|s| s
-            .size_full()
-            .padding(5.)
-            .padding_right(7.)
-        )
-        .scroll_style(|s| s
-            .handle_thickness(6.)
-            .shrink_to_fit()
-        ),
-    )).style(|s| s
-        .width(120.)
-        .min_width(120.)
-        .height_full()
-        .background(BG)
-        .border_right(1.)
-        .border_color(TEXT)
-    );
+        },
+    )
+    .style(|s| s.flex_col().width_full().row_gap(5.))
+    .scroll()
+    .on_click_stop(move |_| {
+        if active_tab.with_untracked(|act| act.is_some()) {
+            active_tab.set(None)
+        }
+    })
+    .style(|s| s.size_full().padding(5.).padding_right(7.))
+    .scroll_style(|s| s.handle_thickness(6.).shrink_to_fit()),))
+    .style(|s| {
+        s.width(120.)
+            .min_width(120.)
+            .height_full()
+            .background(BG)
+            .border_right(1.)
+            .border_color(TEXT)
+    });
 
-
-    let tabs_content_view = stack((
-        tab(
-            move || active_tab.get(),
-            move || tabs.get(),
-            |tab| tab.idx,
-            move |tab| show_tab_content(tab)
-        ).style(|s| s.size_full()),
-    )).style(|s| s.size_full().background(BG));
+    let tabs_content_view = stack((tab(
+        move || active_tab.get(),
+        move || tabs.get(),
+        |tab| tab.idx,
+        move |tab| show_tab_content(tab),
+    )
+    .style(|s| s.size_full()),))
+    .style(|s| s.size_full().background(BG));
 
     v_stack((
         h_stack((
-            button("add tab").action(move || tab_action.update(|a| {*a = Action::Add;}))
-                .style(|s| s
-                    .apply(apply_button_class().apply_class(NewButtonClass))
-                ),
-            button("remove tab").action(move || tab_action.update(|a| {*a = Action::Remove;}))
-                .style(|s| s
-                    .apply(apply_button_class().apply_class(NewButtonClass))
-                ),
-        )).style(|s| s
-            .height(40.px())
-            .width_full()
-            .border_bottom(1.)
-            .border_color(BORDER)
-            .background(BG)
-            .padding(5.)
-            .col_gap(5.)
-            .items_center()
-        ),
-        stack((
-            tabs_view,
-            tabs_content_view
-        )).style(|s| s
-            .height(300.px())
-            .width(400.px())
-            .background(BG)
-        ),
-    )).style(|s| s
-        .size_full()
-        .border(1.)
-        .background(BG_DARK)
-        .border_radius(6.)
-        .border_color(BG_DARK)
-        .border_top(0.5)
-        .border_top_color(BG)
-        .box_shadow_spread(1.)
-        .box_shadow_blur(3.)
-        .box_shadow_v_offset(0.5)
-        .box_shadow_h_offset(-5.)
-        .box_shadow_color(BORDER)
-        .inset(5.px())
-        .inset_bottom(7.px())
+            button("add tab")
+                .action(move || {
+                    tab_action.update(|a| {
+                        *a = Action::Add;
+                    })
+                })
+                .style(|s| s.apply(apply_button_class().apply_class(NewButtonClass))),
+            button("remove tab")
+                .action(move || {
+                    tab_action.update(|a| {
+                        *a = Action::Remove;
+                    })
+                })
+                .style(|s| s.apply(apply_button_class().apply_class(NewButtonClass))),
+        ))
+        .style(|s| {
+            s.height(40.px())
+                .width_full()
+                .border_bottom(1.)
+                .border_color(BORDER)
+                .background(BG)
+                .padding(5.)
+                .col_gap(5.)
+                .items_center()
+        }),
+        stack((tabs_view, tabs_content_view))
+            .style(|s| s.height(300.px()).width(400.px()).background(BG)),
+    ))
+    .style(
+        |s| {
+            s.size_full()
+                .border(1.)
+                .background(BG_DARK)
+                .border_radius(6.)
+                .border_color(BG_DARK)
+                .border_top(0.5)
+                .border_top_color(BG)
+                .box_shadow_spread(1.)
+                .box_shadow_blur(3.)
+                .box_shadow_top_offset(-1.)
+                .box_shadow_bottom_offset(3.)
+                .box_shadow_right_offset(0.5)
+                .box_shadow_left_offset(0.5)
+                // .box_shadow_v_offset(-10.)
+                // .box_shadow_h_offset(10.)
+                .box_shadow_color(TEXT_MUTED)
+        }, // .inset(5.px())
+           // .inset_bottom(7.px())
     )
 }
 
 fn show_tab_content(tab: TabContent) -> impl IntoView {
-    stack((
-        label(move || format!("{} is now active!", tab.name))
-            .style(|s| s.font_size(18.).color(TEXT)),
-    )).style(|s| s
-        .size_full()
-        .items_center()
-        .justify_center()
-        .selectable(false)
-    )
+    v_stack((
+        // label(move || format!("{} is now active!", tab.name))
+        //     .style(|s| s.font_size(18.).color(TEXT)),
+        // empty().style(|s| s
+        //     .size(40.px(), 40.px())
+        //     .border(0.5)
+        //     .border_radius(0.6)
+        //     .background(HIGHLIGHT)
+        //     .box_shadow_top_offset(-5.)
+        //     .box_shadow_bottom_offset(30.)
+        //     .box_shadow_right_offset(20.)
+        //     .box_shadow_left_offset(-10.)
+        //     .box_shadow_spread(1.)
+        //     .box_shadow_blur(3.)
+        // ),
+        empty().style(|s| {
+            s.size(40.px(), 40.px())
+                .border(0.5)
+                .border_radius(0.6)
+                .background(HIGHLIGHT)
+                .box_shadow_top_offset(-5.)
+                .box_shadow_bottom_offset(30.)
+                .box_shadow_right_offset(20.)
+                .box_shadow_left_offset(-10.)
+                .box_shadow_spread(1.)
+                .box_shadow_blur(3.)
+                .apply_box_shadows([BoxShadow::new()
+                    .color(GREEN)
+                    .top_offset(5.)
+                    .bottom_offset(-30.)
+                    .right_offset(-20.)
+                    .left_offset(10.)
+                    .blur_radius(5.)
+                    .spread(10.)])
+        }),
+    ))
+    .style(|s| {
+        s.size_full()
+            .items_center()
+            .justify_center()
+            .selectable(false)
+            .row_gap(20.)
+    })
 }
 
 fn tab_side_item(tab: TabContent, act_tab: RwSignal<Option<usize>>) -> impl IntoView {
-    text(tab.name).style(move |s| s
-        .items_center()
-        .justify_center()
-        .width_full()
-        .height(36.px())
-        .background(BG)
-        .color(TEXT_MUTED)
-        .border(0.5)
-        .border_radius(5.)
-        .selectable(false)
-        .hover(|s| s.border_color(BG_LIGHT).background(BG_LIGHT))
-        .apply_if(
-            act_tab.get().is_some_and(|a| a == tab.idx),
-            |s| s.background(BG_LIGHT).border_color(BG_DARK).color(TEXT)
-        )
-    )
+    text(tab.name).style(move |s| {
+        s.items_center()
+            .justify_center()
+            .width_full()
+            .height(36.px())
+            .background(BG)
+            .color(TEXT_MUTED)
+            .border(0.5)
+            .border_radius(5.)
+            .selectable(false)
+            .hover(|s| s.border_color(BG_LIGHT).background(BG_LIGHT))
+            .apply_if(act_tab.get().is_some_and(|a| a == tab.idx), |s| {
+                s.background(BG_LIGHT).border_color(BG_DARK).color(TEXT)
+            })
+    })
 }
 
 style_class!(pub NewButtonClass);
 
 fn apply_button_class() -> Style {
-    Style::new()
-        .class(NewButtonClass, |s| s
-            .background(BG_LIGHT)
+    Style::new().class(NewButtonClass, |s| {
+        s.background(BG_LIGHT)
             .border(0.5)
             .border_color(BG_LIGHT)
             .border_bottom_color(BG_DARK)
@@ -197,88 +227,87 @@ fn apply_button_class() -> Style {
             .box_shadow_v_offset(1.)
             .box_shadow_color(TEXT_MUTED)
             .padding_vert(7.px())
-            .hover(|s| s
-                .background(HIGHLIGHT)
-                .color(TEXT)
-                .border(0.5)
-                .border_color(BORDER)
-                // .border_top_color(BG_LIGHT)
-                // .border_bottom_color(BG_DARK)
-                .box_shadow_spread(-0.5)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT)
-            )
-            .active(|s| s
-                .background(BG)
-                .color(TEXT)
-                .border(0.5)
-                .border_color(BORDER)
-                // .border_bottom_color(BG_DARK)
-                // .border_top_color(BG)
-                .box_shadow_spread(-1.)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT)
-            )
-            .focus(|s| s
-                .background(BG_LIGHT)
-                .color(TEXT)
-                .border(0.5)
-                .border_color(BORDER)
-                // .border_top_color(BG)
-                .box_shadow_spread(-0.5)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT_MUTED)
-                .hover(|s| s
-                    .background(BG_LIGHT)
+            .hover(|s| {
+                s.background(HIGHLIGHT)
                     .color(TEXT)
                     .border(0.5)
-                    .border_color(HIGHLIGHT)
+                    .border_color(BORDER)
+                    // .border_top_color(BG_LIGHT)
                     // .border_bottom_color(BG_DARK)
-                    // .border_top_color(BG)
                     .box_shadow_spread(-0.5)
                     .box_shadow_blur(2.)
                     .box_shadow_v_offset(1.)
                     .box_shadow_color(TEXT)
-                )
-            )
-            .focus_visible(|s| s
-                .background(BG_LIGHT)
-                .color(TEXT)
-                .border(0.5)
-                .border_color(BORDER)
-                .box_shadow_spread(-0.5)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT)
-            )
-            .selected(|s| s
-                .background(BG_LIGHT)
-                .color(TEXT)
-                .border(0.5)
-                .border_color(BORDER)
-                .box_shadow_spread(-0.5)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT)
-            )
-            .disabled(|s| s
-                .background(BG)
-                .color(TEXT_MUTED)
-                .border(0.5)
-                .border_color(BORDER)
-                // .border_top_color(BG_LIGHT)
-                // .border_bottom_color(BG_DARK)
-                .box_shadow_spread(-0.5)
-                .box_shadow_blur(2.)
-                .box_shadow_v_offset(1.)
-                .box_shadow_color(TEXT)
-            )
-        )
+            })
+            .active(|s| {
+                s.background(BG)
+                    .color(TEXT)
+                    .border(0.5)
+                    .border_color(BORDER)
+                    // .border_bottom_color(BG_DARK)
+                    // .border_top_color(BG)
+                    .box_shadow_spread(-1.)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT)
+            })
+            .focus(|s| {
+                s.background(BG_LIGHT)
+                    .color(TEXT)
+                    .border(0.5)
+                    .border_color(BORDER)
+                    // .border_top_color(BG)
+                    .box_shadow_spread(-0.5)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT_MUTED)
+                    .hover(|s| {
+                        s.background(BG_LIGHT)
+                            .color(TEXT)
+                            .border(0.5)
+                            .border_color(HIGHLIGHT)
+                            // .border_bottom_color(BG_DARK)
+                            // .border_top_color(BG)
+                            .box_shadow_spread(-0.5)
+                            .box_shadow_blur(2.)
+                            .box_shadow_v_offset(1.)
+                            .box_shadow_color(TEXT)
+                    })
+            })
+            .focus_visible(|s| {
+                s.background(BG_LIGHT)
+                    .color(TEXT)
+                    .border(0.5)
+                    .border_color(BORDER)
+                    .box_shadow_spread(-0.5)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT)
+            })
+            .selected(|s| {
+                s.background(BG_LIGHT)
+                    .color(TEXT)
+                    .border(0.5)
+                    .border_color(BORDER)
+                    .box_shadow_spread(-0.5)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT)
+            })
+            .disabled(|s| {
+                s.background(BG)
+                    .color(TEXT_MUTED)
+                    .border(0.5)
+                    .border_color(BORDER)
+                    // .border_top_color(BG_LIGHT)
+                    // .border_bottom_color(BG_DARK)
+                    .box_shadow_spread(-0.5)
+                    .box_shadow_blur(2.)
+                    .box_shadow_v_offset(1.)
+                    .box_shadow_color(TEXT)
+            })
+    })
 }
-
 
 const BG_DARK: Color = hsl([60., 3., 90.]);
 const BG: Color = hsl([60., 3., 95.]);
@@ -290,12 +319,11 @@ const HIGHLIGHT: Color = hsl([60., 3., 100.]);
 const TEXT: Color = hsl([60., 3., 5.]);
 const TEXT_MUTED: Color = hsl([60., 3., 30.]);
 
-
 const fn hsl([h, s, l]: [f32; 3]) -> Color {
     let sat = s * 0.01;
     let light = l * 0.01;
     let a = sat * light.min(1.0 - light);
-   
+
     let hh = transform(0., [h, s, l]);
     let ss = transform(8., [h, s, l]);
     let ll = transform(4., [h, s, l]);
@@ -307,7 +335,7 @@ const fn transform(n: f32, [h, s, l]: [f32; 3]) -> f32 {
     let sat = s * 0.01;
     let light = l * 0.01;
     let a = sat * light.min(1.0 - light);
-    
+
     let x = n + h * (1.0 / 30.0);
     let k = x - 12.0 * (x * (1.0 / 12.0)).floor();
     light - a * (k - 3.0).min(9.0 - k).clamp(-1.0, 1.0)
