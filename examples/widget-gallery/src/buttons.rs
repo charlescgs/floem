@@ -32,7 +32,7 @@ pub fn button_view() -> impl IntoView {
         ),
         form_item(
             "Disabled Button:",
-            button("Click me")
+            button("Unclickable")
                 .disabled(|| true)
                 .action(|| println!("Button clicked")),
         ),
