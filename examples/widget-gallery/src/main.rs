@@ -325,7 +325,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
 }
 
 fn main() {
-    let cfg = WindowConfig::default().size((1000., 800.));
+    let cfg = WindowConfig::default().size((1100., 850.));
     floem::Application::new()
         .window(app_view, Some(cfg))
         .on_event(|ae| match ae {
