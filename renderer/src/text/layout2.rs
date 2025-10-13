@@ -2,7 +2,7 @@ use std::{ops::Range, sync::LazyLock};
 
 use crate::text::AttrsList;
 use parley::{
-    Affinity, Alignment, FontContext
+    Affinity, Alignment, FontContext, PlainEditor
 };
 use parley::Cursor;
 use parley::Glyph;
@@ -33,7 +33,7 @@ pub struct LayoutRun<'a> {
     /// True if the original paragraph direction is RTL
     pub rtl: bool,
     /// The array of layout glyphs to draw
-    pub glyphs: &'a [cosmic_text::LayoutGlyph],
+    // pub glyphs: &'a [cosmic_text::LayoutGlyph],
     pub line: parley::Line<'a, peniko::Brush>,
     /// Maximum ascent of the glyphs in line
     pub max_ascent: f32,
@@ -50,12 +50,12 @@ pub struct LayoutRun<'a> {
 }
 
 
-pub struct LayourRun2<'a> {
+pub struct LayoutRun2<'a> {
     line: parley::Line<'a, Brush>,
 
 }
 
-impl LayoutRun<'_> {
+impl LayoutRun2<'_> {
     /// Return the pixel span `Some((x_left, x_width))` of the highlighted area between `cursor_start`
     /// and `cursor_end` within this run, or None if the cursor range does not intersect this run.
     /// This may return widths of zero if `cursor_start == cursor_end`, if the run is empty, or if the
@@ -209,9 +209,9 @@ pub struct HitPoint {
     pub is_inside: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct TextLayout {
-    buffer: Buffer,
+    buffer: PlainEditor<String>,
     lines_range: Vec<Range<usize>>,
     width_opt: Option<f32>,
     height_opt: Option<f32>,
@@ -226,7 +226,8 @@ impl Default for TextLayout {
 impl TextLayout {
     pub fn new() -> Self {
         TextLayout {
-            buffer: Buffer::new_empty(Metrics::new(16.0, 16.0)),
+            buffer: PlainEditor::new(16.),
+            // buffer: Buffer::new_empty(Metrics::new(16.0, 16.0)),
             lines_range: Vec::new(),
             width_opt: None,
             height_opt: None,
@@ -235,12 +236,12 @@ impl TextLayout {
 
     pub fn new_with_text(text: &str, attrs_list: AttrsList, align: Option<Alignment>) -> Self {
         let mut layout = Self::new();
-        layout.set_text(text, attrs_list, Alignment);
+        layout.set_text(text, attrs_list, align);
         layout
     }
 
     pub fn set_text(&mut self, text: &str, attrs_list: AttrsList, align: Option<Alignment>) {
-        self.buffer.lines.clear();
+        self.buffer.set_text(text);
         self.lines_range.clear();
         let mut attrs_list = attrs_list.0;
         for (range, ending) in LineIter::new(text) {
@@ -262,13 +263,13 @@ impl TextLayout {
             self.buffer.lines.push(line);
             self.lines_range.push(0..0)
         }
-        self.buffer.set_scroll(Scroll::default());
+        // self.buffer.set_scroll(Scroll::default());
 
-        let mut font_system = FONT_SYSTEM.lock();
+        let mut font_system = FONT_SYSTEM2.lock();
 
         // two-pass layout for Alignmentment to work properly
         let needs_two_pass =
-            Alignment.is_some() && Alignment != Some(Alignment::Left) && self.width_opt.is_none();
+            align.is_some() && align != Some(Alignment::Left) && self.width_opt.is_none();
         if needs_two_pass {
             // first pass: shape and layout without width constraint to measure natural width
             self.buffer.shape_until_scroll(&mut font_system, false);
@@ -293,18 +294,18 @@ impl TextLayout {
     }
 
     pub fn set_wrap(&mut self, wrap: Wrap) {
-        let mut font_system = FONT_SYSTEM.lock();
+        let mut font_system = FONT_SYSTEM2.lock();
         self.buffer.set_wrap(&mut font_system, wrap);
     }
 
     pub fn set_tab_width(&mut self, tab_width: usize) {
-        let mut font_system = FONT_SYSTEM.lock();
+        let mut font_system = FONT_SYSTEM2.lock();
         self.buffer
             .set_tab_width(&mut font_system, tab_width as u16);
     }
 
     pub fn set_size(&mut self, width: f32, height: f32) {
-        let mut font_system = FONT_SYSTEM.lock();
+        let mut font_system = FONT_SYSTEM2.lock();
         self.width_opt = Some(width);
         self.height_opt = Some(height);
         self.buffer
@@ -329,7 +330,7 @@ impl TextLayout {
 
     pub fn layout_cursor(&mut self, cursor: Cursor) -> LayoutCursor {
         let line = cursor.line;
-        let mut font_system = FONT_SYSTEM.lock();
+        let mut font_system = FONT_SYSTEM2.lock();
         self.buffer
             .layout_cursor(&mut font_system, cursor)
             .unwrap_or_else(|| LayoutCursor::new(line, 0, 0))

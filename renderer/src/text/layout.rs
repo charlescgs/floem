@@ -2,8 +2,8 @@ use std::{ops::Range, sync::LazyLock};
 
 use crate::text::AttrsList;
 use cosmic_text::{
-    // Affinity,
-    // Align,
+    Affinity,
+    Align,
     Buffer,
     BufferLine,
     Cursor,
@@ -17,9 +17,9 @@ use cosmic_text::{
     Shaping,
     Wrap,
 };
-use parley::{
-    Affinity, Alignment, TreeBuilder,
-};
+// use parley::{
+//     Affinity, Alignment, TreeBuilder,
+// };
 // use parley::{GlyphRun, layout::Cursor};
 use parking_lot::Mutex;
 use peniko::kurbo::{Point, Size};
@@ -101,7 +101,7 @@ impl LayoutRun<'_> {
 
     fn cursor_from_glyph_left(&self, glyph: &LayoutGlyph) -> Cursor {
         if self.rtl {
-            parley::
+            // parley::
             Cursor::new_with_affinity(self.line_i, glyph.end, Affinity::Before)
         } else {
             Cursor::new_with_affinity(self.line_i, glyph.start, Affinity::After)
@@ -239,13 +239,13 @@ impl TextLayout {
         }
     }
 
-    pub fn new_with_text(text: &str, attrs_list: AttrsList, align: Option<Alignment>) -> Self {
+    pub fn new_with_text(text: &str, attrs_list: AttrsList, align: Option<Align>) -> Self {
         let mut layout = Self::new();
-        layout.set_text(text, attrs_list, Alignment);
+        layout.set_text(text, attrs_list, align);
         layout
     }
 
-    pub fn set_text(&mut self, text: &str, attrs_list: AttrsList, align: Option<Alignment>) {
+    pub fn set_text(&mut self, text: &str, attrs_list: AttrsList, align: Option<Align>) {
         self.buffer.lines.clear();
         self.lines_range.clear();
         let mut attrs_list = attrs_list.0;
@@ -257,14 +257,14 @@ impl TextLayout {
                 .split_off(line_text.len() + ending.as_str().len());
             let mut line =
                 BufferLine::new(line_text, ending, attrs_list.clone(), Shaping::Advanced);
-            line.set_Alignment(Alignment);
+            line.set_align(align);
             self.buffer.lines.push(line);
             attrs_list = new_attrs;
         }
         if self.buffer.lines.is_empty() {
             let mut line =
                 BufferLine::new("", LineEnding::default(), attrs_list, Shaping::Advanced);
-            line.set_Alignment(Alignment);
+            line.set_align(align);
             self.buffer.lines.push(line);
             self.lines_range.push(0..0)
         }
@@ -274,7 +274,7 @@ impl TextLayout {
 
         // two-pass layout for Alignmentment to work properly
         let needs_two_pass =
-            Alignment.is_some() && Alignment != Some(Alignment::Left) && self.width_opt.is_none();
+            align.is_some() && align != Some(Align::Left) && self.width_opt.is_none();
         if needs_two_pass {
             // first pass: shape and layout without width constraint to measure natural width
             self.buffer.shape_until_scroll(&mut font_system, false);
