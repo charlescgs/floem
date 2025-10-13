@@ -5,14 +5,18 @@ use floem::prelude::palette::css;
 use floem::prelude::palette::css::BLACK;
 use floem::prelude::palette::css::DARK_GRAY;
 use floem::prelude::palette::css::GREEN;
+use floem::prelude::palette::css::LIGHT_CYAN;
+use floem::prelude::palette::css::MAGENTA;
 use floem::prelude::palette::css::RED;
 use floem::prelude::palette::css::WHITE;
+use floem::prelude::palette::css::YELLOW;
 use floem::prelude::*;
 use floem::reactive::create_effect;
 use floem::style;
 use floem::style::BoxShadow;
 use floem::style::CustomStyle;
 use floem::style::Style;
+use floem::style::Transition;
 use floem::style_class;
 use floem::unit::Px;
 use floem::unit::PxPct;
@@ -172,6 +176,10 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
             .size(100.px(), 100.px())
             .border_radius(6.)
             .background(HIGHLIGHT)
+
+            .border_top(1.)
+            .border_top_color(HIGHLIGHT)
+
             .apply_box_shadow(BoxShadow::new()
                 .color(BORDER.multiply_alpha(0.55))
                 .top_offset(-13.)
@@ -186,6 +194,10 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
             .size(100.px(), 100.px())
             .border_radius(6.)
             .background(HIGHLIGHT)
+
+            .border_top(0.6)
+            .border_top_color(HIGHLIGHT)
+            
             .box_shadow_color(BG_DARK)
             .box_shadow_top_offset(-15.)
             .box_shadow_bottom_offset(4.)
@@ -202,6 +214,16 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
                 .blur_radius(2.)
                 .spread(1.5)
             )
+
+            // .apply_box_shadow(BoxShadow::new()
+            //     .color(HIGHLIGHT)
+            //     .top_offset(2.)
+            //     .bottom_offset(0.)
+            //     .right_offset(0.)
+            //     .left_offset(0.)
+            //     .blur_radius(0.1)
+            //     .spread(0.1)
+            // )
         )
     ))
     .style(|s| {
@@ -244,6 +266,7 @@ fn apply_button_class() -> Style {
     Style::new()
         .class(NewButtonClass, |s| s
             .selectable(false)
+            .transition_background(Transition::linear(30.millis()))
             .background(BG_LIGHT)
             .color(TEXT_MUTED)
             .border(0.)
@@ -290,6 +313,7 @@ fn apply_button_class() -> Style {
             )
             .active(|s| s
                 .background(BG)
+                // .background(MAGENTA)
                 .color(TEXT)
                 .border(0.5)
                 .border_color(BG)
@@ -312,12 +336,13 @@ fn apply_button_class() -> Style {
                 )
             )
             .focus(|s| s
-                .background(BG)
+                // .background(BG)
+                // .background(GREEN)
                 .color(TEXT_MUTED)
                 .border(0.5)
                 .border_color(BG)
                 .border_top_color(BG_LIGHT)
-                .box_shadow_color(BORDER)
+                .box_shadow_color(BG_DARK)
                 .box_shadow_top_offset(-15.)
                 .box_shadow_bottom_offset(3.)
                 .box_shadow_right_offset(-6.)
@@ -357,7 +382,7 @@ fn apply_button_class() -> Style {
                 )
             )
             .focus_visible(|s| s
-                // .background(BG_LIGHT)
+                .background(YELLOW)
                 // .color(TEXT)
                 // .border(0.5)
                 // .border_color(BORDER)
@@ -367,6 +392,7 @@ fn apply_button_class() -> Style {
                 // .box_shadow_color(TEXT)
             )
             .selected(|s| s
+                .background(LIGHT_CYAN)
                 // .background(BG)
                 // .color(TEXT_MUTED)
                 // .border(0.5)

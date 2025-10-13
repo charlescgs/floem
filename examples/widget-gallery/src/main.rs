@@ -16,6 +16,7 @@ pub mod radio_buttons;
 pub mod rich_text;
 pub mod slider;
 pub mod tabs;
+pub mod tabs_dark;
 
 use floem::{
     action::set_window_menu,
@@ -40,6 +41,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
         "Canvas",
         "List",
         "Tabs",
+        "TabsDark",
         "Menu",
         "RichText",
         "Image",
@@ -62,6 +64,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
             "Canvas" => canvas::canvas_view().into_any(),
             "List" => lists::virt_list_view().into_any(),
             "Tabs" => tabs::tab_view().into_any(),
+            "TabsDark" => tabs_dark::tab_view().into_any(),
             "Menu" => context_menu::menu_view().into_any(),
             "RichText" => rich_text::rich_text_view().into_any(),
             "Image" => images::img_view().into_any(),
