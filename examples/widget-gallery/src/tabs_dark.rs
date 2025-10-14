@@ -34,7 +34,7 @@ impl TabContent {
     fn new(tabs_count: usize) -> Self {
         Self {
             idx: tabs_count,
-            name: format!("Tab with index {tabs_count}"),
+            name: format!("Tab with index"),
         }
     }
 }
@@ -133,7 +133,7 @@ pub fn tab_view() -> impl IntoView {
             .style(|s| s.height(400.px()).width(500.px())),
     ))
     .style(|s| s.size_full()
-        .border(1.)
+        // .border(1.)
         .background(D_BG)
         .border(0.)
         
@@ -141,7 +141,7 @@ pub fn tab_view() -> impl IntoView {
         .border_top(0.5)
         .border_top_color(D_HIGHLIGHT)
         .border_bottom(0.5)
-        .border_bottom_color(D_TEXT_MUTED.multiply_alpha(0.7))
+        .border_bottom_color(D_BG_DARK)
 
         // .box_shadow_color(D_BORDER)
         .box_shadow_spread(2.)
@@ -157,6 +157,7 @@ pub fn tab_view() -> impl IntoView {
 }
 
 fn show_tab_content(tab: TabContent) -> impl IntoView {
+    // let text = tab.name.clone();
     stack((
         // label(move || format!("{} is now active!", tab.name))
         //     .style(|s| s.font_size(18.).color(TEXT)),
@@ -179,8 +180,25 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
             .box_shadow_spread(5.)
             .box_shadow_blur(6.)
         ),
-        empty().style(|s|s
+        stack((
+            v_stack((
+                label(move || format!("{}", tab.name)).style(|s| s
+                    .font_size(13.)
+                    .font_bold()
+                    .color(D_TEXT)),
+                label(move || format!("{}", tab.idx)).style(|s| s
+                    .font_size(16.)
+                    .font_bold()
+                    .color(D_TEXT)),
+                label(move || "is now active").style(|s| s
+                    .font_size(11.)
+                    .color(D_TEXT_MUTED))
+            )).style(|s| s.size_full().items_center().justify_center()),
+        )).style(|s|s
             .size(100.px(), 100.px())
+            .items_center()
+            .justify_center()
+            
             .border_radius(6.)
             .background(D_BG)
 
@@ -225,16 +243,6 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
                 .blur_radius(2.)
                 .spread(1.5)
             )
-
-            // .apply_box_shadow(BoxShadow::new()
-            //     .color(HIGHLIGHT)
-            //     .top_offset(2.)
-            //     .bottom_offset(0.)
-            //     .right_offset(0.)
-            //     .left_offset(0.)
-            //     .blur_radius(0.1)
-            //     .spread(0.1)
-            // )
         )
     ))
     .style(|s| {
@@ -247,7 +255,7 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
 }
 
 fn tab_side_item(tab: TabContent, act_tab: RwSignal<Option<usize>>) -> impl IntoView {
-    text(tab.name).style(move |s| {
+    text(format!("{} {}", tab.name, tab.idx)).style(move |s| {
         s.items_center()
             .justify_center()
             .width_full()

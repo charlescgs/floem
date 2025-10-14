@@ -34,7 +34,7 @@ impl TabContent {
     fn new(tabs_count: usize) -> Self {
         Self {
             idx: tabs_count,
-            name: format!("Tab with index {tabs_count}"),
+            name: format!("Tab with index"),
         }
     }
 }
@@ -172,7 +172,21 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
             .box_shadow_spread(5.)
             .box_shadow_blur(4.)
         ),
-        empty().style(|s|s
+        stack((
+            v_stack((
+                label(move || format!("{}", tab.name)).style(|s| s
+                    .font_size(13.)
+                    .font_bold()
+                    .color(TEXT)),
+                label(move || format!("{}", tab.idx)).style(|s| s
+                    .font_size(16.)
+                    .font_bold()
+                    .color(TEXT)),
+                label(move || "is now active").style(|s| s
+                    .font_size(11.)
+                    .color(TEXT_MUTED))
+            )).style(|s| s.size_full().items_center().justify_center()),
+        )).style(|s|s
             .size(100.px(), 100.px())
             .border_radius(6.)
             .background(HIGHLIGHT)
@@ -236,7 +250,7 @@ fn show_tab_content(tab: TabContent) -> impl IntoView {
 }
 
 fn tab_side_item(tab: TabContent, act_tab: RwSignal<Option<usize>>) -> impl IntoView {
-    text(tab.name).style(move |s| {
+    text(format!("{} {}", tab.name, tab.idx)).style(move |s| {
         s.items_center()
             .justify_center()
             .width_full()
