@@ -172,9 +172,6 @@ impl ApplicationHandle {
                 WindowEvent::Moved(..) => "Moved",
                 WindowEvent::CloseRequested => "CloseRequested",
                 WindowEvent::Destroyed => "Destroyed",
-                WindowEvent::DroppedFile(_) => "DroppedFile",
-                WindowEvent::HoveredFile(_) => "HoveredFile",
-                WindowEvent::HoveredFileCancelled => "HoveredFileCancelled",
                 WindowEvent::Focused(..) => "Focused",
                 WindowEvent::KeyboardInput { .. } => "KeyboardInput",
                 WindowEvent::ModifiersChanged(..) => "ModifiersChanged",
@@ -193,7 +190,10 @@ impl ApplicationHandle {
                 WindowEvent::PanGesture { .. } => "PanGesture",
                 WindowEvent::DoubleTapGesture { .. } => "DoubleTapGesture",
                 WindowEvent::RotationGesture { .. } => "RotationGesture",
-                // WindowEvent::MenuAction(..) => "MenuAction",
+                WindowEvent::DragDropped { .. } => "DroppedFile",
+                WindowEvent::DragEntered { .. } => "DragEntered",
+                WindowEvent::DragLeft { .. } => "DragLeft",
+                WindowEvent::DragMoved { .. } => "DragMoved",
             };
             (
                 name,
@@ -220,11 +220,18 @@ impl ApplicationHandle {
             WindowEvent::Destroyed => {
                 self.close_window(window_id, event_loop);
             }
-            WindowEvent::DroppedFile(path) => {
-                window_handle.dropped_file(path);
+            WindowEvent::DragDropped { paths, .. } => {
+                window_handle.dropped_files(paths);
             }
-            WindowEvent::HoveredFile(_) => {}
-            WindowEvent::HoveredFileCancelled => {}
+            WindowEvent::DragEntered { .. } => {
+                // TODO!
+            }
+            WindowEvent::DragLeft { .. } => {
+                // TODO!
+            }
+            WindowEvent::DragMoved { .. } => {
+                // TODO!
+            }
             WindowEvent::Focused(focused) => {
                 window_handle.focused(focused);
             }
@@ -319,6 +326,7 @@ impl ApplicationHandle {
             window_level,
             apply_default_theme,
             mac_os_config,
+            win_os_config,
             web_config,
             font_embolden,
             win_os_config,
@@ -327,6 +335,9 @@ impl ApplicationHandle {
         let logical_size = size.map(|size| LogicalSize::new(size.width, size.height));
         let logical_min_size = min_size.map(|size| LogicalSize::new(size.width, size.height));
         let logical_max_size = max_size.map(|size| LogicalSize::new(size.width, size.height));
+
+        #[cfg(target_os = "macos")]
+        let mut mac_attrs = winit::platform::macos::WindowAttributesMacOS::default();
 
         let mut window_attributes = winit::window::WindowAttributes::default()
             .with_visible(false)
@@ -384,41 +395,27 @@ impl ApplicationHandle {
 
        #[cfg(target_os = "windows")]
         {
-            use winit::platform::windows::WindowAttributesExtWindows;
-            // use winit::platform::windows::WindowExtWindows;
-            if !show_titlebar {
-                window_attributes = window_attributes
-                    .with_titlebar(false)
-                    .with_top_resize_border(false);
+            use winit::platform::windows::WindowAttributesWindows;
+            let mut win =
+                WindowAttributesWindows::default().with_undecorated_shadow(undecorated_shadow);
+            if let Some(cfg) = win_os_config {
+                use crate::window::convert_to_win;
+                win = win
+                    .with_title_background_color(convert_to_win(cfg.set_title_background_color))
+                    .with_border_color(convert_to_win(cfg.set_border_color))
+                    .with_skip_taskbar(cfg.set_skip_taskbar)
+                    .with_corner_preference(cfg.corner_preference.into())
+                    .with_system_backdrop(cfg.set_system_backdrop.into())
+                    .with_title_text_color(
+                        convert_to_win(cfg.set_title_text_color).unwrap_or_default(),
+                    );
             }
-                // .with_undecorated_shadow(undecorated_shadow)
-            if let Some(win_os) = win_os_config {
-                window_attributes = window_attributes
-                    .with_corner_preference(win_os.corner_preference)
-                    .with_top_resize_border(win_os.top_resize_border)
-                    .with_taskbar_icon(win_os.set_taskbar_icon)
-                    .with_skip_taskbar(win_os.set_skip_taskbar)
-                    .with_system_backdrop(win_os.set_system_backdrop)
-                    .with_border_color(win_os.set_border_color)
-                    .with_title_background_color(win_os.set_title_background_color);
-                if let Some(c) = win_os.set_title_text_color {
-                    window_attributes = window_attributes.with_title_text_color(c);
-                }
-                // TODO: set_enable
-            }
-            // .with_decorations(decorations)
-            // window.set_titlebar(false);
-            // window.set_system_backdrop(winit::platform::windows::BackdropType::None);
-            // window.set_top_resize_border(false);
-            // // window.set_enabled_buttons(WindowButtons::all());
-            // window.set_corner_preference(winit::platform::windows::CornerPreference::Round)
-            // ;
+            window_attributes = window_attributes.with_platform_attributes(Box::new(win));
         }
 
         #[cfg(target_os = "macos")]
         if !show_titlebar {
-            use winit::platform::macos::WindowAttributesExtMacOS;
-            window_attributes = window_attributes
+            mac_attrs = mac_attrs
                 .with_movable_by_window_background(false)
                 .with_title_hidden(true)
                 .with_titlebar_transparent(true)
@@ -428,60 +425,62 @@ impl ApplicationHandle {
 
         #[cfg(target_os = "macos")]
         if undecorated {
-            use winit::platform::macos::WindowAttributesExtMacOS;
             // A palette-style window that will only obtain window focus but
             // not actually propagate the first mouse click it receives is
             // very unlikely to be expected behavior - these typically are
             // used for something that offers a quick choice and are closed
             // in a single pointer gesture.
-            window_attributes = window_attributes.with_accepts_first_mouse(true);
+            mac_attrs = mac_attrs.with_accepts_first_mouse(true);
         }
 
         #[cfg(target_os = "macos")]
         if let Some(mac) = &mac_os_config {
-            use winit::platform::macos::WindowAttributesExtMacOS;
             if let Some(val) = mac.movable_by_window_background {
-                window_attributes = window_attributes.with_movable_by_window_background(val);
+                mac_attrs = mac_attrs.with_movable_by_window_background(val);
             }
             if let Some(val) = mac.titlebar_transparent {
-                window_attributes = window_attributes.with_titlebar_transparent(val);
+                mac_attrs = mac_attrs.with_titlebar_transparent(val);
             }
             if let Some(val) = mac.titlebar_hidden {
-                window_attributes = window_attributes.with_titlebar_hidden(val);
+                mac_attrs = mac_attrs.with_titlebar_hidden(val);
             }
             if let Some(val) = mac.title_hidden {
-                window_attributes = window_attributes.with_title_hidden(val);
+                mac_attrs = mac_attrs.with_title_hidden(val);
             }
             if let Some(val) = mac.full_size_content_view {
-                window_attributes = window_attributes.with_fullsize_content_view(val);
+                mac_attrs = mac_attrs.with_fullsize_content_view(val);
             }
             if let Some(val) = mac.unified_titlebar {
-                window_attributes = window_attributes.with_unified_titlebar(val);
+                mac_attrs = mac_attrs.with_unified_titlebar(val);
             }
             if let Some(val) = mac.movable {
-                window_attributes = window_attributes.with_movable_by_window_background(val);
+                mac_attrs = mac_attrs.with_movable_by_window_background(val);
             }
             if let Some(val) = mac.accepts_first_mouse {
-                window_attributes = window_attributes.with_accepts_first_mouse(val);
+                mac_attrs = mac_attrs.with_accepts_first_mouse(val);
             }
             if let Some(val) = mac.option_as_alt {
-                window_attributes = window_attributes.with_option_as_alt(val.into());
+                mac_attrs = mac_attrs.with_option_as_alt(val.into());
             }
             if let Some(title) = &mac.tabbing_identifier {
-                window_attributes = window_attributes.with_tabbing_identifier(title.as_str());
+                mac_attrs = mac_attrs.with_tabbing_identifier(title.as_str());
             }
             if let Some(disallow_hidpi) = mac.disallow_high_dpi {
-                window_attributes = window_attributes.with_disallow_hidpi(disallow_hidpi);
+                mac_attrs = mac_attrs.with_disallow_hidpi(disallow_hidpi);
             }
             if let Some(shadow) = mac.has_shadow {
-                window_attributes = window_attributes.with_has_shadow(shadow);
+                mac_attrs = mac_attrs.with_has_shadow(shadow);
             }
             if let Some(hide) = mac.titlebar_buttons_hidden {
-                window_attributes = window_attributes.with_titlebar_buttons_hidden(hide)
+                mac_attrs = mac_attrs.with_titlebar_buttons_hidden(hide)
             }
             if let Some(panel) = mac.panel {
-                window_attributes = window_attributes.with_panel(panel)
+                mac_attrs = mac_attrs.with_panel(panel)
             }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            window_attributes = window_attributes.with_platform_attributes(Box::new(mac_attrs));
         }
 
         let Ok(window) = event_loop.create_window(window_attributes) else {

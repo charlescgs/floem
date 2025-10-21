@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use muda::MenuId;
 use peniko::kurbo::{Point, Size};
 use taffy::{AvailableSpace, NodeId};
-use winit::window::{CursorIcon, Theme};
+use winit::cursor::CursorIcon;
+use winit::window::Theme;
 
 use crate::{
     context::{DragState, FrameUpdate, InteractionState},
@@ -304,6 +305,16 @@ impl AppState {
     }
 
     pub(crate) fn focus_changed(&mut self, old: Option<ViewId>, new: Option<ViewId>) {
+        if let Some(old_id) = old {
+            // To remove the styles applied by the Focus selector
+            if self.has_style_for_sel(old_id, StyleSelector::Focus)
+                || self.has_style_for_sel(old_id, StyleSelector::FocusVisible)
+            {
+                old_id.request_style_recursive();
+            }
+            old_id.apply_event(&EventListener::FocusLost, &Event::FocusLost);
+        }
+
         if let Some(id) = new {
             // To apply the styles of the Focus selector
             if self.has_style_for_sel(id, StyleSelector::Focus)
@@ -313,16 +324,6 @@ impl AppState {
             }
             id.apply_event(&EventListener::FocusGained, &Event::FocusGained);
             id.scroll_to(None);
-        }
-
-        if let Some(old_id) = old {
-            // To remove the styles applied by the Focus selector
-            if self.has_style_for_sel(old_id, StyleSelector::Focus)
-                || self.has_style_for_sel(old_id, StyleSelector::FocusVisible)
-            {
-                old_id.request_style_recursive();
-            }
-            old_id.apply_event(&EventListener::FocusLost, &Event::FocusLost);
         }
     }
 }

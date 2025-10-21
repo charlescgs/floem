@@ -5,7 +5,7 @@ use crate::{
     context::{LayoutCx, PaintCx, UpdateCx},
     event::{Event, EventListener, EventPropagation},
     id::ViewId,
-    keyboard::{Key, Modifiers, NamedKey},
+    keyboard::{Key, Modifiers},
     kurbo::{BezPath, Line, Point, Rect, Size, Vec2},
     peniko::Color,
     reactive::{batch, create_effect, create_memo, create_rw_signal, Memo, RwSignal, Scope},
@@ -18,6 +18,7 @@ use crate::{
     Renderer,
 };
 use floem_editor_core::{
+    command::EditCommand,
     cursor::{ColPosition, CursorAffinity, CursorMode},
     mode::{Mode, VisualMode},
 };
@@ -31,7 +32,7 @@ use crate::views::editor::{
     visual_line::{RVLine, VLineInfo},
 };
 
-use super::{Editor, CHAR_WIDTH};
+use super::{command::Command, Editor, CHAR_WIDTH};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DiffSectionKind {
@@ -379,14 +380,22 @@ impl EditorView {
             }
 
             // TODO: What affinity should these use?
+            let left_affinity = if rvline == start_rvline && left_col == ed.last_col(info, true) {
+                CursorAffinity::Backward
+            } else {
+                CursorAffinity::Forward
+            };
+
             let x0 = ed
-                .line_point_of_line_col(line, left_col, CursorAffinity::Forward, true)
+                .line_point_of_line_col(line, left_col, left_affinity, true)
                 .x;
             let x1 = ed
                 .line_point_of_line_col(line, right_col, CursorAffinity::Backward, true)
                 .x;
+
+            // Resolving width for displaying the newline character selection
             // TODO(minor): Should this be line != end_line?
-            let x1 = if rvline != end_rvline {
+            let x1 = if rvline != end_rvline && rvline.line_index + 1 == info.line_count {
                 x1 + CHAR_WIDTH
             } else {
                 x1
@@ -514,7 +523,7 @@ impl EditorView {
         cursor.with_untracked(|cursor| {
             let highlight_current_line = match cursor.mode {
                 // TODO: check if shis should be 0 or 1
-                CursorMode::Normal(size) => size == 0,
+                CursorMode::Normal { offset: size, .. } => size == 0,
                 CursorMode::Insert(ref sel) => sel.is_caret(),
                 CursorMode::Visual { .. } => false,
             };
@@ -522,9 +531,9 @@ impl EditorView {
             if let Some(current_line_color) = current_line_color {
                 // Highlight the current line
                 if highlight_current_line {
-                    for (_, end) in cursor.regions_iter() {
+                    for (_, end, affinity) in cursor.regions_iter() {
                         // TODO: unsure if this is correct for wrapping lines
-                        let rvline = ed.rvline_of_offset(end, cursor.affinity);
+                        let rvline = ed.rvline_of_offset(end, affinity);
 
                         if let Some(info) = screen_lines.info(rvline) {
                             let line_height = ed.line_height(info.vline_info.rvline.line);
@@ -549,11 +558,12 @@ impl EditorView {
         let selection_color = ed.es.with_untracked(|es| es.selection());
 
         cursor.with_untracked(|cursor| match cursor.mode {
-            CursorMode::Normal(_) => {}
+            CursorMode::Normal { .. } => {}
             CursorMode::Visual {
                 start,
                 end,
                 mode: VisualMode::Normal,
+                affinity,
             } => {
                 let start_offset = start.min(end);
                 let end_offset = ed.move_right(start.max(end), Mode::Insert, 1);
@@ -565,13 +575,14 @@ impl EditorView {
                     screen_lines,
                     start_offset,
                     end_offset,
-                    cursor.affinity,
+                    affinity,
                 );
             }
             CursorMode::Visual {
                 start,
                 end,
                 mode: VisualMode::Linewise,
+                affinity,
             } => {
                 EditorView::paint_linewise_selection(
                     cx,
@@ -580,13 +591,14 @@ impl EditorView {
                     screen_lines,
                     start.min(end),
                     start.max(end),
-                    cursor.affinity,
+                    affinity,
                 );
             }
             CursorMode::Visual {
                 start,
                 end,
                 mode: VisualMode::Blockwise,
+                affinity,
             } => {
                 EditorView::paint_blockwise_selection(
                     cx,
@@ -595,12 +607,14 @@ impl EditorView {
                     screen_lines,
                     start.min(end),
                     start.max(end),
-                    cursor.affinity,
+                    affinity,
                     cursor.horiz,
                 );
             }
             CursorMode::Insert(_) => {
-                for (start, end) in cursor.regions_iter().filter(|(start, end)| start != end) {
+                for (start, end, affinity) in
+                    cursor.regions_iter().filter(|(start, end, _)| start != end)
+                {
                     EditorView::paint_normal_selection(
                         cx,
                         ed,
@@ -608,7 +622,7 @@ impl EditorView {
                         screen_lines,
                         start.min(end),
                         start.max(end),
-                        cursor.affinity,
+                        affinity,
                     );
                 }
             }
@@ -631,13 +645,19 @@ impl EditorView {
 
         cursor.with_untracked(|cursor| {
             let style = ed.style();
-            for (_, end) in cursor.regions_iter() {
+            let displaying_placeholder =
+                ed.text().is_empty() && ed.preedit().preedit.with_untracked(|p| p.is_none());
+
+            for (_, end, mut affinity) in cursor.regions_iter() {
+                if displaying_placeholder {
+                    affinity = CursorAffinity::Backward;
+                }
+
                 let is_block = match cursor.mode {
-                    CursorMode::Normal(_) | CursorMode::Visual { .. } => true,
+                    CursorMode::Normal { .. } | CursorMode::Visual { .. } => true,
                     CursorMode::Insert(_) => false,
                 };
-                let LineRegion { x, width, rvline } =
-                    cursor_caret(ed, end, is_block, cursor.affinity);
+                let LineRegion { x, width, rvline } = cursor_caret(ed, end, is_block, affinity);
 
                 if let Some(info) = screen_lines.info(rvline) {
                     if !style.paint_caret(ed.id(), rvline.line) {
@@ -942,33 +962,62 @@ pub fn editor_view(
 
     let editor_window_origin = ed.window_origin;
     let cursor = ed.cursor;
-    let ime_allowed = ed.ime_allowed;
+    let cursor_memo = create_memo(move |_| cursor.with(|c| (c.is_insert(), c.offset())));
+    let allows_ime = ed.ime_allowed;
     let editor_viewport = ed.viewport;
+    let focused = ed.editor_view_focused_value;
+    let prev_ime_area = ed.ime_cursor_area;
+    let preedit = ed.preedit().preedit;
+
     create_effect(move |_| {
-        let active = is_active.get();
-        if active {
-            if !cursor.with(|c| c.is_insert()) {
-                if ime_allowed.get_untracked() {
-                    ime_allowed.set(false);
-                    set_ime_allowed(false);
-                }
-            } else {
-                if !ime_allowed.get_untracked() {
-                    ime_allowed.set(true);
-                    set_ime_allowed(true);
-                }
-                let (offset, affinity) = cursor.with(|c| (c.offset(), c.affinity));
-                let (_, point_below) = ed.points_of_offset(offset, affinity);
-                let window_origin = editor_window_origin.get();
-                let viewport = editor_viewport.get();
-                let pos =
-                    window_origin + (point_below.x - viewport.x0, point_below.y - viewport.y0);
-                set_ime_cursor_area(pos, Size::new(800.0, 600.0));
+        if !is_active.get() {
+            return;
+        }
+
+        let (allowing_ime, offset) = cursor_memo.get();
+        let focused = focused.get();
+
+        // apply ime state changes
+        if allows_ime.get_untracked() != allowing_ime {
+            allows_ime.set(allowing_ime);
+
+            if focused {
+                set_ime_allowed(allowing_ime);
             }
         }
-    });
 
-    let has_focus = RwSignal::new(false);
+        if !allowing_ime || !focused {
+            // avoid resolving cursor area if we don't need it
+            return;
+        }
+
+        // subscribe to preedit changes, as it affects the CursorAffinity::Forward calculation
+        preedit.with(|_| {});
+
+        let (point_above, _) = ed.points_of_offset(offset, CursorAffinity::Backward);
+        let (point_above2, point_below) = ed.points_of_offset(offset, CursorAffinity::Forward);
+
+        let viewport = editor_viewport.get();
+        let (min_x, max_x);
+
+        if point_above.y != point_above2.y {
+            // multiline
+            min_x = 0.0;
+            max_x = viewport.x1 - viewport.x0;
+        } else {
+            min_x = point_above.x.min(point_above2.x);
+            max_x = point_above.x.max(point_above2.x);
+        }
+
+        let window_origin = editor_window_origin.get();
+        let pos = window_origin + (min_x - viewport.x0, point_above.y - viewport.y0);
+        let size = Size::new(max_x - min_x, point_below.y - point_above.y);
+
+        if prev_ime_area.get_untracked() != Some((pos, size)) {
+            set_ime_cursor_area(pos, size);
+            prev_ime_area.set(Some((pos, size)));
+        }
+    });
 
     EditorView {
         id,
@@ -977,16 +1026,21 @@ pub fn editor_view(
         inner_node: None,
     }
     .keyboard_navigable()
-    .on_event(EventListener::FocusGained, move |_| {
-        has_focus.set(true);
-        EventPropagation::Continue
+    .on_event_cont(EventListener::FocusGained, move |_| {
+        focused.set(true);
+        prev_ime_area.set(None);
+
+        if allows_ime.get_untracked() {
+            set_ime_allowed(true);
+        }
     })
-    .on_event(EventListener::FocusLost, move |_| {
-        has_focus.set(false);
-        EventPropagation::Continue
+    .on_event_cont(EventListener::FocusLost, move |_| {
+        focused.set(false);
+        editor.with_untracked(|ed| ed.commit_preedit());
+        set_ime_allowed(false);
     })
     .on_event(EventListener::ImePreedit, move |event| {
-        if !is_active.get_untracked() || !has_focus {
+        if !is_active.get_untracked() || !focused.get_untracked() {
             return EventPropagation::Continue;
         }
 
@@ -995,7 +1049,21 @@ pub fn editor_view(
                 if text.is_empty() {
                     ed.clear_preedit();
                 } else {
+                    ed.doc.with_untracked(|doc| {
+                        doc.run_command(
+                            ed,
+                            &Command::Edit(EditCommand::DeleteSelection),
+                            Some(1),
+                            Modifiers::empty(),
+                        );
+                    });
+
                     let offset = ed.cursor.with_untracked(|c| c.offset());
+
+                    // update affinity to display caret after preedit
+                    ed.cursor
+                        .update(|c| c.set_latest_affinity(CursorAffinity::Forward));
+
                     ed.set_preedit(text.clone(), *cursor, offset);
                 }
             });
@@ -1003,7 +1071,7 @@ pub fn editor_view(
         EventPropagation::Stop
     })
     .on_event(EventListener::ImeCommit, move |event| {
-        if !is_active.get_untracked() || !has_focus {
+        if !is_active.get_untracked() || !focused.get_untracked() {
             return EventPropagation::Continue;
         }
 
@@ -1196,9 +1264,6 @@ fn editor_content(
                 if mods.is_empty() {
                     if let KeyInput::Keyboard(Key::Character(c), _) = keypress.key {
                         editor.get_untracked().receive_char(&c);
-                    } else if let KeyInput::Keyboard(Key::Named(NamedKey::Space), _) = keypress.key
-                    {
-                        editor.get_untracked().receive_char(" ");
                     } else if let KeyInput::Keyboard(Key::Unidentified(_), _) = keypress.key {
                         if let Some(text) = key_text {
                             editor.get_untracked().receive_char(&text);
@@ -1222,7 +1287,7 @@ fn editor_content(
         // editor.kind.track();
 
         let LineRegion { x, width, rvline } =
-            cursor_caret(&editor, offset, !cursor.is_insert(), cursor.affinity);
+            cursor_caret(&editor, offset, !cursor.is_insert(), cursor.affinity());
 
         // TODO: don't assume line-height is constant
         let line_height = f64::from(editor.line_height(0));
