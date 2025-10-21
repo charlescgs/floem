@@ -40,7 +40,6 @@ pub struct WindowConfig {
     pub(crate) mac_os_config: Option<MacOSWindowConfig>,
     pub(crate) win_os_config: Option<WinOSWindowConfig>,
     pub(crate) web_config: Option<WebWindowConfig>,
-    pub(crate) win_os_config: Option<WindowsWindowConfig>,
 }
 
 impl Default for WindowConfig {
@@ -68,7 +67,6 @@ impl Default for WindowConfig {
             mac_os_config: None,
             win_os_config: None,
             web_config: None,
-            win_os_config: None,
         }
     }
 }
@@ -216,24 +214,24 @@ impl WindowConfig {
         self
     }
 
-    /// Set up Windows OS specific configuration.  The passed closure will only be
+    /// Set up Windows OS specific configuration. The passed closure will only be
     /// called on Windows.
     #[allow(unused_variables, unused_mut)] // build will complain on non-Windows otherwise
     pub fn with_win_os_config(
         mut self,
-        mut f: impl FnMut(WindowsWindowConfig) -> WindowsWindowConfig,
+        mut f: impl FnMut(WinOSWindowConfig) -> WinOSWindowConfig,
     ) -> Self {
         #[cfg(target_os = "windows")]
         if let Some(existing_config) = self.win_os_config {
             self.win_os_config = Some(f(existing_config))
         } else {
-            let new_config = f(WindowsWindowConfig::default());
+            let new_config = f(WinOSWindowConfig::default());
             self.win_os_config = Some(new_config);
         }
         self
     }
 
-    /// Set up Mac-OS specific configuration.  The passed closure will only be
+    /// Set up Mac-OS specific configuration. The passed closure will only be
     /// called on macOS.
     #[allow(unused_variables, unused_mut)] // build will complain on non-macOS's otherwise
     pub fn with_mac_os_config(
@@ -635,7 +633,7 @@ impl WebWindowConfig {
 #[derive(Debug, Clone)]
 pub struct WindowsWindowConfig {
     pub(crate) top_resize_border: bool,
-    pub(crate) corner_preference: CornerPreference,
+    pub(crate) corner_preference: WinOsCornerPreference,
     pub(crate) set_enable: bool,
     pub(crate) set_taskbar_icon: Option<Icon>,
     pub(crate) set_skip_taskbar: bool,
@@ -643,7 +641,7 @@ pub struct WindowsWindowConfig {
     // ///
     // /// Enabling the shadow causes a thin 1px line to appear on the top of the window.
     // pub(crate) set_undecorated_shadow: bool,
-    pub(crate) set_system_backdrop: BackdropType,
+    pub(crate) set_system_backdrop: WinOsBackdropType,
     pub(crate) set_border_color: Option<Color>,
     pub(crate) set_title_background_color: Option<Color>,
     pub(crate) set_title_text_color: Option<Color>,
@@ -653,11 +651,11 @@ impl Default for WindowsWindowConfig {
     fn default() -> Self {
         Self {
             top_resize_border: true,
-            corner_preference: CornerPreference::Default,
+            corner_preference: WinOsCornerPreference::Default,
             set_enable: true,
             set_taskbar_icon: None,
             set_skip_taskbar: false,
-            set_system_backdrop: BackdropType::Auto,
+            set_system_backdrop: WinOsBackdropType::Auto,
             set_border_color: None,
             set_title_background_color: None,
             set_title_text_color: None,
@@ -676,7 +674,7 @@ impl WindowsWindowConfig {
     /// Sets the preferred style of the window corners.
     ///
     /// Supported starting with Windows 11 Build 22000.
-    pub fn corner_preference(mut self, corner_preference: CornerPreference) -> Self {
+    pub fn corner_preference(mut self, corner_preference: WinOsCornerPreference) -> Self {
         self.corner_preference = corner_preference;
         self
     }
@@ -714,7 +712,7 @@ impl WindowsWindowConfig {
     /// Sets system-drawn backdrop type.
     ///
     /// Requires Windows 11 build 22523+.
-    pub fn set_system_backdrop(mut self, set_system_backdrop: BackdropType) -> Self {
+    pub fn set_system_backdrop(mut self, set_system_backdrop: WinOsBackdropType) -> Self {
         self.set_system_backdrop = set_system_backdrop;
         self
     }

@@ -329,7 +329,6 @@ impl ApplicationHandle {
             win_os_config,
             web_config,
             font_embolden,
-            win_os_config,
         }: WindowConfig,
     ) {
         let logical_size = size.map(|size| LogicalSize::new(size.width, size.height));
