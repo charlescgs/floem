@@ -12,9 +12,9 @@ pub fn rich_text_view() -> impl IntoView {
         "This".red().italic() + " is rich text".blue() + "\nTest value: " + 5.to_string().green();
 
     let text = "
-    // floem is a ui lib, homepage https://github.com/lapce/floem
+    // floem is an UI library, homepage: https://github.com/lapce/floem
     fn main() {
-        println(\"Hello World!\");
+        println!(\"Hello World!\");
     }";
     scroll({
         v_stack((
@@ -24,60 +24,66 @@ pub fn rich_text_view() -> impl IntoView {
                 let mut attrs_list = AttrsList::new(attrs);
 
                 attrs_list.add_span(
-                    Range { start: 5, end: 66 },
+                    Range { start: 6, end: 67 },
                     Attrs::new().color(palette::css::GRAY).style(Style::Italic),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 36, end: 66 },
+                    Range { start: 42, end: 72 },
                     Attrs::new().color(palette::css::BLUE),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 71, end: 73 },
+                    Range { start: 77, end: 79 },
                     Attrs::new().color(palette::css::PURPLE),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 74, end: 78 },
+                    Range { start: 80, end: 84 },
                     Attrs::new().color(palette::css::SKY_BLUE),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 78, end: 80 },
+                    Range { start: 84, end: 86 },
                     Attrs::new().color(palette::css::GOLDENROD),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 91, end: 98 },
+                    Range {
+                        start: 97,
+                        end: 104,
+                    },
                     Attrs::new().color(palette::css::GOLD),
                 );
 
                 attrs_list.add_span(
-                    Range { start: 98, end: 99 },
+                    Range {
+                        start: 104,
+                        end: 105,
+                    },
                     Attrs::new().color(palette::css::PURPLE),
                 );
 
                 attrs_list.add_span(
                     Range {
-                        start: 100,
-                        end: 113,
+                        start: 106,
+                        end: 119,
                     },
                     Attrs::new().color(palette::css::DARK_GREEN),
                 );
 
                 attrs_list.add_span(
                     Range {
-                        start: 113,
-                        end: 114,
+                        start: 119,
+                        end: 120,
                     },
                     Attrs::new().color(palette::css::PURPLE),
                 );
 
                 attrs_list.add_span(
                     Range {
-                        start: 114,
-                        end: 115,
+                        start: 120,
+                        end: 121,
                     },
                     Attrs::new().color(palette::css::GRAY),
                 );

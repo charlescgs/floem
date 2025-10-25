@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::text::{fontdb, Family, Stretch, Style, Weight};
 use peniko::Color;
 
-/// An owned version of [`Family`]
+/// An owned version of rich text [`Family`].
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum FamilyOwned {
     Name(String),
@@ -52,7 +52,14 @@ pub enum LineHeightValue {
     Px(f32),
 }
 
-/// Text attributes
+/// Rich text attributes:
+/// - color
+/// - family
+/// - stretch
+/// - style
+/// - weight
+/// - Letter spacing
+/// - font_features
 #[derive(Clone, Debug)]
 pub struct AttrsOwned {
     attrs: cosmic_text::AttrsOwned,
@@ -77,7 +84,14 @@ impl AttrsOwned {
     }
 }
 
-/// Text attributes
+/// Text attributes:
+/// - color
+/// - family
+/// - stretch
+/// - style
+/// - weight
+/// - Letter spacing
+/// - font_features
 #[derive(Clone, Debug)]
 pub struct Attrs<'a> {
     attrs: cosmic_text::Attrs<'a>,
@@ -92,9 +106,9 @@ impl Default for Attrs<'_> {
 }
 
 impl<'a> Attrs<'a> {
-    /// Create a new set of attributes with sane defaults
+    /// Create a new set of attributes with sane defaults.
     ///
-    /// This defaults to a regular Sans-Serif font.
+    /// This defaults to a regular `Sans-Serif` font.
     pub fn new() -> Self {
         Self {
             attrs: cosmic_text::Attrs::new(),
@@ -103,7 +117,7 @@ impl<'a> Attrs<'a> {
         }
     }
 
-    /// Set [Color]
+    /// Set [Color].
     pub fn color(mut self, color: Color) -> Self {
         let c = color.to_rgba8();
         self.attrs = self
@@ -112,7 +126,7 @@ impl<'a> Attrs<'a> {
         self
     }
 
-    /// Set [Family]
+    /// Set [Family].
     pub fn family(mut self, family: &'a [FamilyOwned]) -> Self {
         if let Some(family) = family.first() {
             self.attrs = self.attrs.family(family.as_family());
@@ -120,25 +134,25 @@ impl<'a> Attrs<'a> {
         self
     }
 
-    /// Set [Stretch]
+    /// Set [Stretch].
     pub fn stretch(mut self, stretch: Stretch) -> Self {
         self.attrs = self.attrs.stretch(stretch);
         self
     }
 
-    /// Set [Style]
+    /// Set [Style].
     pub fn style(mut self, style: Style) -> Self {
         self.attrs = self.attrs.style(style);
         self
     }
 
-    /// Set [Weight]
+    /// Set [Weight].
     pub fn weight(mut self, weight: Weight) -> Self {
         self.attrs = self.attrs.weight(weight);
         self
     }
 
-    /// Set Weight from u16 value
+    /// Set Weight from u16 value.
     pub fn raw_weight(mut self, weight: u16) -> Self {
         self.attrs = self.attrs.weight(Weight(weight));
         self
@@ -152,7 +166,7 @@ impl<'a> Attrs<'a> {
         cosmic_text::Metrics::new(self.font_size, line_height)
     }
 
-    /// Set font size
+    /// Set font size.
     pub fn font_size(mut self, font_size: f32) -> Self {
         self.font_size = font_size;
         let metrics = self.get_metrics();
@@ -160,7 +174,7 @@ impl<'a> Attrs<'a> {
         self
     }
 
-    /// Set line height
+    /// Set line height.
     pub fn line_height(mut self, line_height: LineHeightValue) -> Self {
         self.line_height = line_height;
         let metrics = self.get_metrics();
@@ -168,18 +182,18 @@ impl<'a> Attrs<'a> {
         self
     }
 
-    /// Set metadata
+    /// Set metadata.
     pub fn metadata(mut self, metadata: usize) -> Self {
         self.attrs = self.attrs.metadata(metadata);
         self
     }
 
-    /// Check if font matches
+    /// Check if font matches.
     pub fn matches(&self, face: &fontdb::FaceInfo) -> bool {
         self.attrs.matches(face)
     }
 
-    /// Check if this set of attributes can be shaped with another
+    /// Check if this set of attributes can be shaped with another.
     pub fn compatible(&self, other: &Self) -> bool {
         self.attrs.compatible(&other.attrs)
     }
@@ -189,34 +203,34 @@ impl<'a> Attrs<'a> {
 pub struct AttrsList(pub cosmic_text::AttrsList);
 
 impl AttrsList {
-    /// Create a new attributes list with a set of default [Attrs]
+    /// Create a new attributes list with a set of default [Attrs].
     pub fn new(defaults: Attrs) -> Self {
         Self(cosmic_text::AttrsList::new(&defaults.attrs))
     }
 
-    /// Get the default [Attrs]
+    /// Get the default [Attrs].
     pub fn defaults(&self) -> Attrs<'_> {
         self.0.defaults().into()
     }
 
-    /// Clear the current attribute spans
+    /// Clear the current attribute spans.
     pub fn clear_spans(&mut self) {
         self.0.clear_spans();
     }
 
-    /// Add an attribute span, removes any previous matching parts of spans
+    /// Add an attribute span, removes any previous matching parts of spans.
     pub fn add_span(&mut self, range: Range<usize>, attrs: Attrs) {
         self.0.add_span(range, &attrs.attrs);
     }
 
-    /// Get the attribute span for an index
+    /// Get the attribute span for an index.
     ///
-    /// This returns a span that contains the index
+    /// This returns a span that contains the index.
     pub fn get_span(&self, index: usize) -> Attrs<'_> {
         self.0.get_span(index).into()
     }
 
-    /// Split attributes list at an offset
+    /// Split attributes list at an offset.
     pub fn split_off(&mut self, index: usize) -> Self {
         let new = self.0.split_off(index);
         Self(new)
