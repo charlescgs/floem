@@ -18,6 +18,7 @@ type ViewFn<T> = Box<dyn Fn(T) -> (Box<dyn View>, Scope)>;
 enum TabState<V> {
     Diff(Box<Diff<V>>),
     Active(usize),
+    None,
 }
 
 pub struct Tab<T>
@@ -25,14 +26,14 @@ where
     T: 'static,
 {
     id: ViewId,
-    active: usize,
+    active: Option<usize>,
     children: Vec<Option<(ViewId, Scope)>>,
     view_fn: ViewFn<T>,
     phatom: PhantomData<T>,
 }
 
 pub fn tab<IF, I, T, KF, K, VF, V>(
-    active_fn: impl Fn() -> usize + 'static,
+    active_fn: impl Fn() -> Option<usize> + 'static,
     each_fn: IF,
     key_fn: KF,
     view_fn: VF,
@@ -77,15 +78,18 @@ where
     });
 
     create_effect(move |_| {
-        let active = active_fn();
-        id.update_state(TabState::Active::<T>(active));
+        let active_key = active_fn();
+        match active_key {
+            Some(key) => id.update_state(TabState::Active::<T>(key)),
+            None => id.update_state(TabState::None::<T>),
+        }
     });
 
     let view_fn = Box::new(as_child_of_current_scope(move |e| view_fn(e).into_any()));
 
     Tab {
         id,
-        active: 0,
+        active: None,
         children: Vec::new(),
         view_fn,
         phatom: PhantomData,
@@ -98,7 +102,7 @@ impl<T> View for Tab<T> {
     }
 
     fn debug_name(&self) -> std::borrow::Cow<'static, str> {
-        format!("Tab: {}", self.active).into()
+        format!("Tab: {:?}", self.active).into()
     }
 
     fn update(&mut self, cx: &mut UpdateCx, state: Box<dyn std::any::Any>) {
@@ -114,7 +118,10 @@ impl<T> View for Tab<T> {
                     );
                 }
                 TabState::Active(active) => {
-                    self.active = active;
+                    self.active.replace(active);
+                }
+                TabState::None => {
+                    self.active.take();
                 }
             }
             self.id.request_all();
@@ -126,31 +133,37 @@ impl<T> View for Tab<T> {
 
     fn style_pass(&mut self, cx: &mut StyleCx<'_>) {
         for (i, child) in self.id.children().into_iter().enumerate() {
-            if i == self.active {
-                cx.style_view(child);
+            if let Some(active) = self.active {
+                if i == active {
+                    cx.style_view(child);
+                }
             }
             let child_view = child.state();
             let mut child_view = child_view.borrow_mut();
             let display = child_view.combined_style.get(DisplayProp);
             child_view.combined_style = child_view.combined_style.clone().set(
                 DisplayProp,
-                if i != self.active {
-                    // set display to none for non active child
-                    Display::None
-                } else {
-                    display
+                match self.active {
+                    None => Display::None,
+                    Some(active_index) if active_index == i => display,
+                    Some(_) => {
+                        // set display to none for non-active child
+                        Display::None
+                    }
                 },
             );
         }
     }
 
     fn paint(&mut self, cx: &mut crate::context::PaintCx) {
-        if let Some(Some((active, _))) = self
-            .children
-            .get(self.active)
-            .or_else(|| self.children.first())
-        {
-            cx.paint_view(*active);
+        if let Some(active_index) = self.active {
+            if let Some(Some((active, _))) = self
+                .children
+                .get(active_index)
+                .or_else(|| self.children.first())
+            {
+                cx.paint_view(*active);
+            }
         }
     }
 }

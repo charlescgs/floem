@@ -15,6 +15,8 @@ pub mod lists;
 pub mod radio_buttons;
 pub mod rich_text;
 pub mod slider;
+pub mod tabs;
+pub mod tabs_dark;
 
 use floem::{
     action::set_window_menu,
@@ -38,6 +40,8 @@ fn app_view(window_id: WindowId) -> impl IntoView {
         "Input",
         "Canvas",
         "List",
+        "Tabs",
+        "TabsDark",
         "Menu",
         "RichText",
         "Image",
@@ -59,6 +63,8 @@ fn app_view(window_id: WindowId) -> impl IntoView {
             "Input" => inputs::text_input_view().into_any(),
             "Canvas" => canvas::canvas_view().into_any(),
             "List" => lists::virt_list_view().into_any(),
+            "Tabs" => tabs::tab_view().into_any(),
+            "TabsDark" => tabs_dark::tab_view().into_any(),
             "Menu" => context_menu::menu_view().into_any(),
             "RichText" => rich_text::rich_text_view().into_any(),
             "Image" => images::img_view().into_any(),
@@ -139,7 +145,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
             },
             Some(
                 WindowConfig::default()
-                    .size(Size::new(700.0, 400.0))
+                    .size(Size::new(900.0, 600.0))
                     .title(name.unwrap_or_default()),
             ),
         );
@@ -151,7 +157,7 @@ fn app_view(window_id: WindowId) -> impl IntoView {
         .style(|s| s.height_full().row_gap(5.0));
 
     let tab = tab(
-        move || active_tab.get(),
+        move || Some(active_tab.get()),
         move || tabs.get(),
         |it| *it,
         create_view,
@@ -318,12 +324,13 @@ fn app_view(window_id: WindowId) -> impl IntoView {
                 floem::close_window(window_id);
             }
         }
-    })
+    }).window_scale(|| 1.5)
 }
 
 fn main() {
+    let cfg = WindowConfig::default().size((1100., 850.));
     floem::Application::new()
-        .window(app_view, None)
+        .window(app_view, Some(cfg))
         .on_event(|ae| match ae {
             floem::AppEvent::WillTerminate => {
                 println!("terminating");

@@ -1057,10 +1057,9 @@ impl WindowHandle {
                     UpdateMessage::SetImeAllowed { allowed } => {
                         if self.window.ime_capabilities().is_some() != allowed {
                             let ime = if allowed {
-                                let position = LogicalPosition::new(0, 0);
-                                let size = LogicalSize::new(0, 0);
+                                // let position = LogicalPosition::new(0, 0);
+                                // let size = LogicalSize::new(0, 0);
                                 let request_data = ImeRequestData::default()
-                                    .with_cursor_area(position.into(), size.into())
                                     .with_hint_and_purpose(ImeHint::NONE, ImePurpose::Normal);
 
                                 ImeRequest::Enable(
@@ -1068,7 +1067,7 @@ impl WindowHandle {
                                         ImeCapabilities::new()
                                             .with_hint_and_purpose()
                                             .with_cursor_area(),
-                                        request_data,
+                                        request_data
                                     )
                                     .unwrap(),
                                 )
