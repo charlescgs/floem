@@ -35,8 +35,7 @@ fn counter_view() -> impl IntoView {
                 .with_locale("pl-PL")
                 .class(ButtonClass)
                 .on_click_stop(move |_| counter -= 1),
-            l10n("deca")
-                .fallback("fallback")
+            l10n("deca").fallback("fallback"),
         ))
         .style(|s| s.size_full().items_center().justify_center().gap(10.)),
     ))

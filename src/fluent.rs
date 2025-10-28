@@ -87,14 +87,14 @@ fn update_arg(
     main_key: &str,
     arg_key: &str,
     value: impl Into<FluentValue<'static>>,
-    with_locale: Option<String>
+    with_locale: Option<String>,
 ) -> Option<String> {
     println!("update_arg for: {main_key}, with_locale: {with_locale:?}");
     LOCALE.with(|loc| {
         let mut locales = loc.locales.borrow_mut();
         let language = match &with_locale {
             Some(lan) => lan,
-            None => &*loc.current.borrow()
+            None => &*loc.current.borrow(),
         };
         let bundle = locales.get_mut(language)?;
 
@@ -129,7 +129,7 @@ fn get_locale_from_key(key: &str, with_locale: Option<String>) -> Option<String>
         let locales = loc.locales.borrow();
         let language = match &with_locale {
             Some(lan) => lan,
-            None => &*loc.current.borrow()
+            None => &*loc.current.borrow(),
         };
         let bundle = locales.get(language)?;
         let msg = bundle.get_message(key)?.value()?;
@@ -171,7 +171,7 @@ pub fn l10n(label_key: &str) -> L10n {
         label: RwSignal::new(String::new()),
         has_args: RwSignal::new(false),
         fallback: RwSignal::new(None),
-        non_default_locale: RwSignal::new(None)
+        non_default_locale: RwSignal::new(None),
     };
 
     let label = label(move || match l10n.has_args.get() {
@@ -182,7 +182,7 @@ pub fn l10n(label_key: &str) -> L10n {
                 eprintln!("`get_locale_from_key` returned `None`");
                 match &l10n.fallback.get_untracked() {
                     Some(fallback) => fallback.clone(),
-                    None => l10n.label.get_untracked()
+                    None => l10n.label.get_untracked(),
                 }
             })
         }
@@ -226,8 +226,8 @@ impl Localize for L10n {
                     &item_key,
                     &arg_key,
                     value(),
-                    self.non_default_locale.get_untracked())
-                else {
+                    self.non_default_locale.get_untracked(),
+                ) else {
                     eprintln!("`update_arg` returned `None`");
                     return self.label.get_untracked();
                 };
@@ -238,13 +238,13 @@ impl Localize for L10n {
         self.label.set(initial_label);
         self
     }
-    
+
     fn fallback(self, fallback_label: impl Into<String>) -> Self {
         self.fallback.set(Some(fallback_label.into()));
         get_refresh_trigger().notify();
         self
     }
-    
+
     fn with_locale(self, locale_key: impl Into<String>) -> Self {
         self.non_default_locale.set(Some(locale_key.into()));
         get_refresh_trigger().notify();
