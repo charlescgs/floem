@@ -87,11 +87,16 @@ fn update_arg(
     main_key: &str,
     arg_key: &str,
     value: impl Into<FluentValue<'static>>,
+    with_locale: Option<String>
 ) -> Option<String> {
-    println!("update_arg for: {main_key}");
+    println!("update_arg for: {main_key}, with_locale: {with_locale:?}");
     LOCALE.with(|loc| {
         let mut locales = loc.locales.borrow_mut();
-        let bundle = locales.get_mut(&*loc.current.borrow())?;
+        let language = match &with_locale {
+            Some(lan) => lan,
+            None => &*loc.current.borrow()
+        };
+        let bundle = locales.get_mut(language)?;
 
         let msg = bundle.get_message(main_key)?.value()?;
 
@@ -118,10 +123,15 @@ fn update_arg(
     })
 }
 
-fn get_locale_from_key(key: &str) -> Option<String> {
+fn get_locale_from_key(key: &str, with_locale: Option<String>) -> Option<String> {
+    println!("get_locale_from_key: {key}, with_locale: {with_locale:?}");
     LOCALE.with(|loc| {
         let locales = loc.locales.borrow();
-        let bundle = locales.get(&*loc.current.borrow())?;
+        let language = match &with_locale {
+            Some(lan) => lan,
+            None => &*loc.current.borrow()
+        };
+        let bundle = locales.get(language)?;
         let msg = bundle.get_message(key)?.value()?;
         let args = loc.args.borrow();
         let args = args.get(key);
@@ -140,6 +150,8 @@ pub struct L10n {
     key: String,
     label: RwSignal<String>,
     has_args: RwSignal<bool>,
+    fallback: RwSignal<Option<String>>,
+    non_default_locale: RwSignal<Option<String>>,
 }
 
 impl crate::View for L10n {
@@ -158,15 +170,20 @@ pub fn l10n(label_key: &str) -> L10n {
         key: key.clone(),
         label: RwSignal::new(String::new()),
         has_args: RwSignal::new(false),
+        fallback: RwSignal::new(None),
+        non_default_locale: RwSignal::new(None)
     };
 
     let label = label(move || match l10n.has_args.get() {
         true => l10n.label.get(),
         false => {
             trigger.track();
-            get_locale_from_key(&key).unwrap_or({
+            get_locale_from_key(&key, l10n.non_default_locale.get_untracked()).unwrap_or({
                 eprintln!("`get_locale_from_key` returned `None`");
-                l10n.label.get_untracked()
+                match &l10n.fallback.get_untracked() {
+                    Some(fallback) => fallback.clone(),
+                    None => l10n.label.get_untracked()
+                }
             })
         }
     });
@@ -175,15 +192,22 @@ pub fn l10n(label_key: &str) -> L10n {
     l10n
 }
 
-pub trait LocalizeWithArgs {
+pub trait Localize {
+    /// Add reactive arguments.
     fn with_arg(
         self,
         arg: impl Into<String>,
         val: impl Fn() -> FluentValue<'static> + 'static,
     ) -> Self;
+
+    /// A fallback label.
+    fn fallback(self, fallback_label: impl Into<String>) -> Self;
+
+    /// Override app locale.
+    fn with_locale(self, locale_key: impl Into<String>) -> Self;
 }
 
-impl LocalizeWithArgs for L10n {
+impl Localize for L10n {
     fn with_arg(
         self,
         arg: impl Into<String>,
@@ -198,7 +222,12 @@ impl LocalizeWithArgs for L10n {
             move || {
                 println!("updater: l10n from: `{item_key}` `{arg_key}`");
                 trigger.track();
-                let Some(val) = update_arg(&item_key, &arg_key, value()) else {
+                let Some(val) = update_arg(
+                    &item_key,
+                    &arg_key,
+                    value(),
+                    self.non_default_locale.get_untracked())
+                else {
                     eprintln!("`update_arg` returned `None`");
                     return self.label.get_untracked();
                 };
@@ -207,6 +236,18 @@ impl LocalizeWithArgs for L10n {
             move |val| self.label.set(val),
         );
         self.label.set(initial_label);
+        self
+    }
+    
+    fn fallback(self, fallback_label: impl Into<String>) -> Self {
+        self.fallback.set(Some(fallback_label.into()));
+        get_refresh_trigger().notify();
+        self
+    }
+    
+    fn with_locale(self, locale_key: impl Into<String>) -> Self {
+        self.non_default_locale.set(Some(locale_key.into()));
+        get_refresh_trigger().notify();
         self
     }
 }

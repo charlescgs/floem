@@ -27,12 +27,16 @@ fn counter_view() -> impl IntoView {
         .style(|s| s.width_full().padding_top(30.).justify_center().gap(10.)),
         h_stack((
             l10n("inc")
+                .fallback("increment-fallback")
                 .class(ButtonClass)
                 .on_click_stop(move |_| counter += 1),
             l10n("val").with_arg("counter", move || counter.get().into()),
             l10n("dec")
+                .with_locale("pl-PL")
                 .class(ButtonClass)
                 .on_click_stop(move |_| counter -= 1),
+            l10n("deca")
+                .fallback("fallback")
         ))
         .style(|s| s.size_full().items_center().justify_center().gap(10.)),
     ))
