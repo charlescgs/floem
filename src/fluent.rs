@@ -83,13 +83,17 @@ fn get_refresh_trigger() -> Trigger {
     LOCALE.with(|l| l.refresh)
 }
 
-fn update_arg(main_key: &str, arg_key: &str, value: impl Into<FluentValue<'static>>) -> String {
+fn update_arg(
+    main_key: &str,
+    arg_key: &str,
+    value: impl Into<FluentValue<'static>>,
+) -> Option<String> {
     println!("update_arg for: {main_key}");
     LOCALE.with(|loc| {
         let mut locales = loc.locales.borrow_mut();
-        let bundle = locales.get_mut(&*loc.current.borrow()).unwrap();
+        let bundle = locales.get_mut(&*loc.current.borrow())?;
 
-        let msg = bundle.get_message(main_key).unwrap().value().unwrap();
+        let msg = bundle.get_message(main_key)?.value()?;
 
         let mut args_mut = loc.args.borrow_mut();
         match args_mut.entry(main_key.to_string()) {
@@ -110,15 +114,15 @@ fn update_arg(main_key: &str, arg_key: &str, value: impl Into<FluentValue<'stati
         if !errors.is_empty() {
             eprintln!("errors: {errors:#?}");
         }
-        final_msg.to_string()
+        Some(final_msg.to_string())
     })
 }
 
-fn get_locale_from_key(key: &str) -> String {
+fn get_locale_from_key(key: &str) -> Option<String> {
     LOCALE.with(|loc| {
         let locales = loc.locales.borrow();
-        let bundle = locales.get(&*loc.current.borrow()).unwrap();
-        let msg = bundle.get_message(key).unwrap().value().unwrap();
+        let bundle = locales.get(&*loc.current.borrow())?;
+        let msg = bundle.get_message(key)?.value()?;
         let args = loc.args.borrow();
         let args = args.get(key);
 
@@ -127,7 +131,7 @@ fn get_locale_from_key(key: &str) -> String {
         if !errors.is_empty() {
             eprintln!("errors: {errors:#?}");
         }
-        s.to_string()
+        Some(s.to_string())
     })
 }
 
@@ -160,7 +164,10 @@ pub fn l10n(label_key: &str) -> L10n {
         true => l10n.label.get(),
         false => {
             trigger.track();
-            get_locale_from_key(&key)
+            get_locale_from_key(&key).unwrap_or({
+                eprintln!("`get_locale_from_key` returned `None`");
+                l10n.label.get_untracked()
+            })
         }
     });
 
@@ -180,22 +187,24 @@ impl LocalizeWithArgs for L10n {
     fn with_arg(
         self,
         arg: impl Into<String>,
-        val: impl Fn() -> FluentValue<'static> + 'static,
+        value: impl Fn() -> FluentValue<'static> + 'static,
     ) -> Self {
         let trigger = get_refresh_trigger();
-        let k1 = self.key.clone();
-        let k2 = arg.into();
+        let item_key = self.key.clone();
+        let arg_key = arg.into();
         self.has_args.set(true);
 
         let initial_label = create_updater(
             move || {
-                println!("updater: l10n from: `{k1}` `{k2}`");
+                println!("updater: l10n from: `{item_key}` `{arg_key}`");
                 trigger.track();
-                update_arg(&k1, &k2, val())
+                let Some(val) = update_arg(&item_key, &arg_key, value()) else {
+                    eprintln!("`update_arg` returned `None`");
+                    return self.label.get_untracked();
+                };
+                val
             },
-            move |v| {
-                self.label.set(v);
-            },
+            move |val| self.label.set(val),
         );
         self.label.set(initial_label);
         self
