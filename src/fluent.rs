@@ -2,10 +2,10 @@ use std::borrow::Cow;
 use std::pin::Pin;
 use std::rc::Rc;
 
-use crate::style::StylePropValue;
+use crate::style::{CustomStylable, CustomStyle, Style, StylePropValue};
 use crate::view_state::{Stack, StackOffset};
 use crate::views::static_label;
-use crate::{AnyView, IntoView, View, ViewId, prop, prop_extractor};
+use crate::{AnyView, IntoView, View, ViewId, prop, prop_extractor, style_class};
 use floem_reactive::create_updater;
 use floem_renderer::text::Align;
 use fluent_bundle::{FluentBundle, FluentResource};
@@ -140,6 +140,8 @@ prop_extractor! {
     }
 }
 
+style_class!(pub L10nClass);
+
 pub struct L10n {
     id: ViewId,
     key: String,
@@ -256,5 +258,58 @@ impl View for L10n {
             }
             self.label_id.update_state(self.fallback.fallback());
         }
+    }
+}
+
+/// Represents a custom style for `L10n`.
+#[derive(Debug, Clone)]
+pub struct L10nCustomStyle(Style);
+
+impl From<L10nCustomStyle> for Style {
+    fn from(value: L10nCustomStyle) -> Self {
+        value.0
+    }
+}
+
+impl From<Style> for L10nCustomStyle {
+    fn from(value: Style) -> Self {
+        Self(value)
+    }
+}
+
+impl CustomStyle for L10nCustomStyle {
+    type StyleClass = L10nClass;
+}
+
+impl CustomStylable<L10nCustomStyle> for L10n {
+    type DV = Self;
+}
+
+impl L10nCustomStyle {
+    pub fn new() -> Self {
+        Self(Style::new())
+    }
+
+    pub fn language(mut self, language: impl Into<LanguageIdentifier>) -> Self {
+        let language = language.into();
+        self = Self(self.0.set(L10nLanguage, Some(language)));
+        self
+    }
+
+    pub fn fallback(mut self, fallback: impl Into<String>) -> Self {
+        let string = fallback.into();
+        self = Self(self.0.set(L10nFallback, Some(string)));
+        self
+    }
+
+    pub fn bundle(mut self, bundle: impl Into<LanguageMap>) -> Self {
+        self = Self(self.0.set(L10nBundle, bundle));
+        self
+    }
+}
+
+impl Default for L10nCustomStyle {
+    fn default() -> Self {
+        Self::new()
     }
 }
