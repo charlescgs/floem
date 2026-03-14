@@ -405,6 +405,7 @@ impl PaintState {
         }
     }
 
+    #[cfg(not(feature = "win"))]
     pub fn new(
         window: Arc<dyn Window>,
         surface: wgpu::Surface<'static>,

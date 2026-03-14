@@ -124,6 +124,7 @@ pub(crate) enum UserEvent {
     Reopen {
         has_visible_windows: bool,
     },
+    #[allow(dead_code)]
     GpuResourcesUpdate {
         window_id: WindowId,
     },

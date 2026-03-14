@@ -111,7 +111,7 @@ impl Drop for WindowHandle {
 impl WindowHandle {
     const LIVE_RESIZE_IDLE_TIMEOUT: Duration = Duration::from_millis(120);
 
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, unused_variables)]
     pub(crate) fn new(
         window: Box<dyn winit::window::Window>,
         gpu_resources: Option<GpuResources>,
@@ -160,6 +160,14 @@ impl WindowHandle {
         let window: Arc<dyn Window> = window.into();
         store_window_id_mapping(id, window_id, &window);
 
+        #[cfg(feature = "win")]
+        let paint_state = {
+            let phys_size = size.get_untracked() * os_scale;
+            let renderer = crate::paint::Renderer::new_win(window.clone(), os_scale, phys_size);
+            PaintState::Initialized { renderer }
+        };
+
+        #[cfg(not(feature = "win"))]
         let paint_state = if let Some(resources) = gpu_resources.clone() {
             let surface = resources
                 .instance
@@ -218,6 +226,9 @@ impl WindowHandle {
             #[cfg(not(target_arch = "wasm32"))]
             window_menu: None,
             event_reducer: WindowEventReducer::default(),
+            #[cfg(feature = "win")]
+            gpu_resources: None,
+            #[cfg(not(feature = "win"))]
             gpu_resources,
             last_presented_at: Instant::now(),
             is_occluded: false,

@@ -20,10 +20,11 @@ use winit::{
 };
 
 use super::{APP_UPDATE_EVENTS, AppConfig, AppEventCallback, AppUpdateEvent, UserEvent};
+#[cfg(not(feature = "win"))]
+use crate::context::PaintState;
 use crate::{
     AppEvent, Application,
     action::{Timer, TimerToken},
-    context::PaintState,
     dropped_file,
     event::dropped_file::FileDragEvent,
     ext_event::EXT_EVENT_HANDLER,
@@ -86,6 +87,7 @@ impl ApplicationHandle {
                     });
                 }
             }
+            #[cfg(not(feature = "win"))]
             UserEvent::GpuResourcesUpdate { window_id } => {
                 let handle = self.window_handles.get_mut(&window_id).unwrap();
                 if let PaintState::PendingGpuResources {
@@ -111,6 +113,10 @@ impl ApplicationHandle {
                 } else {
                     panic!("Sent a gpu resource update after it had already been initialized");
                 }
+            }
+            #[cfg(feature = "win")]
+            UserEvent::GpuResourcesUpdate { .. } => {
+                // Win renderer bypasses wgpu — this event should never fire
             }
             UserEvent::ShowContextMenu {
                 window_id,
@@ -516,6 +522,8 @@ impl ApplicationHandle {
             use winit::platform::windows::WindowAttributesWindows;
             let mut win =
                 WindowAttributesWindows::default().with_undecorated_shadow(undecorated_shadow);
+            #[cfg(feature = "win")]
+            { win = win.with_no_redirection_bitmap(true); }
             if let Some(cfg) = win_os_config {
                 use crate::window::convert_to_win;
                 win = win

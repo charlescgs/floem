@@ -50,22 +50,27 @@
 use std::sync::Arc;
 
 use floem_renderer::Img;
+#[cfg(not(feature = "win"))]
 use floem_renderer::gpu_resources::GpuResources;
 use floem_tiny_skia_renderer::TinySkiaRenderer;
-#[cfg(feature = "vello")]
+#[cfg(all(feature = "vello", not(feature = "win")))]
 use floem_vello_renderer::VelloRenderer;
-#[cfg(not(feature = "vello"))]
+#[cfg(all(not(feature = "vello"), not(feature = "win")))]
 use floem_vger_renderer::VgerRenderer;
+#[cfg(feature = "win")]
+use floem_win_renderer::WinRenderer;
 use peniko::BrushRef;
 use peniko::kurbo::{Affine, Point, Rect, Shape, Size, Stroke};
 use winit::window::Window;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Renderer {
-    #[cfg(feature = "vello")]
+    #[cfg(all(feature = "vello", not(feature = "win")))]
     Vello(VelloRenderer),
-    #[cfg(not(feature = "vello"))]
+    #[cfg(all(not(feature = "vello"), not(feature = "win")))]
     Vger(VgerRenderer),
+    #[cfg(feature = "win")]
+    Win(WinRenderer),
     TinySkia(TinySkiaRenderer<Arc<dyn Window>>),
     /// Uninitialized renderer, used to allow the renderer to be created lazily
     /// All operations on this renderer are no-ops
@@ -75,27 +80,49 @@ pub enum Renderer {
 }
 
 impl Renderer {
-    #[cfg(feature = "vello")]
+    #[cfg(any(feature = "vello", feature = "win"))]
     pub(crate) fn is_vger(&self) -> bool {
         false
     }
 
-    #[cfg(not(feature = "vello"))]
+    #[cfg(all(not(feature = "vello"), not(feature = "win")))]
     pub(crate) fn is_vger(&self) -> bool {
         matches!(self, Renderer::Vger(_))
     }
 
     pub(crate) fn uses_layer_clip(&self) -> bool {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(_) => true,
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(_) => false,
+            #[cfg(feature = "win")]
+            Renderer::Win(_) => true,
             Renderer::TinySkia(_) => true,
             Renderer::Uninitialized { .. } => false,
         }
     }
 
+    #[cfg(feature = "win")]
+    pub fn new_win(window: Arc<dyn Window>, scale: f64, size: Size) -> Self {
+        use raw_window_handle::HasWindowHandle;
+        let size = Size::new(size.width.max(1.0), size.height.max(1.0));
+        let hwnd_raw = match window.window_handle().expect("window handle").as_raw() {
+            raw_window_handle::RawWindowHandle::Win32(h) => h.hwnd.get() as isize,
+            _ => panic!("WinRenderer requires a Win32 window"),
+        };
+        match WinRenderer::new(
+            hwnd_raw,
+            size.width as u32,
+            size.height as u32,
+            scale,
+        ) {
+            Ok(win) => Self::Win(win),
+            Err(err) => panic!("Failed to create WinRenderer: {err}"),
+        }
+    }
+
+    #[cfg(not(feature = "win"))]
     #[allow(unused_variables)]
     pub fn new(
         window: Arc<dyn Window>,
@@ -170,10 +197,12 @@ impl Renderer {
     pub fn resize(&mut self, scale: f64, size: Size) {
         let size = Size::new(size.width.max(1.0), size.height.max(1.0));
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(r) => r.resize(size.width as u32, size.height as u32, scale),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(r) => r.resize(size.width as u32, size.height as u32, scale),
+            #[cfg(feature = "win")]
+            Renderer::Win(r) => r.resize(size.width as u32, size.height as u32, scale),
             Renderer::TinySkia(r) => r.resize(size.width as u32, size.height as u32, scale),
             Renderer::Uninitialized { .. } => {}
         }
@@ -181,10 +210,12 @@ impl Renderer {
 
     pub fn set_scale(&mut self, scale: f64) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(r) => r.set_scale(scale),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(r) => r.set_scale(scale),
+            #[cfg(feature = "win")]
+            Renderer::Win(r) => r.set_scale(scale),
             Renderer::TinySkia(r) => r.set_scale(scale),
             Renderer::Uninitialized { .. } => {}
         }
@@ -192,10 +223,12 @@ impl Renderer {
 
     pub fn size(&self) -> Size {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(r) => r.size(),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(r) => r.size(),
+            #[cfg(feature = "win")]
+            Renderer::Win(r) => r.size(),
             Renderer::TinySkia(r) => r.size(),
             Renderer::Uninitialized { size } => *size,
         }
@@ -205,10 +238,12 @@ impl Renderer {
         use crate::Renderer;
 
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Self::Vello(r) => r.debug_info(),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Self::Vger(r) => r.debug_info(),
+            #[cfg(feature = "win")]
+            Self::Win(r) => r.debug_info(),
             Self::TinySkia(r) => r.debug_info(),
             Self::Uninitialized { .. } => "Uninitialized".to_string(),
         }
@@ -218,12 +253,16 @@ impl Renderer {
 impl floem_renderer::Renderer for Renderer {
     fn begin(&mut self, capture: bool) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(r) => {
                 r.begin(capture);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(r) => {
+                r.begin(capture);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(r) => {
                 r.begin(capture);
             }
             Renderer::TinySkia(r) => {
@@ -235,12 +274,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn clip(&mut self, shape: &impl Shape) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.clip(shape);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.clip(shape);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.clip(shape);
             }
             Renderer::TinySkia(v) => {
@@ -252,12 +295,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn clear_clip(&mut self) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.clear_clip();
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.clear_clip();
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.clear_clip();
             }
             Renderer::TinySkia(v) => {
@@ -274,12 +321,16 @@ impl floem_renderer::Renderer for Renderer {
         stroke: &'s Stroke,
     ) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.stroke(shape, brush, stroke);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.stroke(shape, brush, stroke);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.stroke(shape, brush, stroke);
             }
             Renderer::TinySkia(v) => {
@@ -296,12 +347,16 @@ impl floem_renderer::Renderer for Renderer {
         blur_radius: f64,
     ) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.fill(path, brush, blur_radius);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.fill(path, brush, blur_radius);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.fill(path, brush, blur_radius);
             }
             Renderer::TinySkia(v) => {
@@ -319,12 +374,16 @@ impl floem_renderer::Renderer for Renderer {
         clip: &impl Shape,
     ) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.push_layer(blend, alpha, transform, clip);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.push_layer(blend, alpha, transform, clip);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.push_layer(blend, alpha, transform, clip);
             }
             Renderer::TinySkia(v) => v.push_layer(blend, alpha, transform, clip),
@@ -334,12 +393,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn pop_layer(&mut self) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.pop_layer();
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.pop_layer();
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.pop_layer();
             }
             Renderer::TinySkia(v) => v.pop_layer(),
@@ -349,12 +412,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn draw_img(&mut self, img: Img<'_>, rect: Rect) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.draw_img(img, rect);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.draw_img(img, rect);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.draw_img(img, rect);
             }
             Renderer::TinySkia(v) => {
@@ -371,10 +438,12 @@ impl floem_renderer::Renderer for Renderer {
         glyphs: impl Iterator<Item = floem_renderer::text::Glyph> + 'a,
     ) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => v.draw_glyphs(origin, props, glyphs),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => v.draw_glyphs(origin, props, glyphs),
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => v.draw_glyphs(origin, props, glyphs),
             Renderer::TinySkia(v) => v.draw_glyphs(origin, props, glyphs),
             Renderer::Uninitialized { .. } => {}
         }
@@ -387,12 +456,16 @@ impl floem_renderer::Renderer for Renderer {
         brush: Option<impl Into<BrushRef<'b>>>,
     ) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.draw_svg(svg, rect, brush);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.draw_svg(svg, rect, brush);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.draw_svg(svg, rect, brush);
             }
             Renderer::TinySkia(v) => {
@@ -404,12 +477,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn set_transform(&mut self, transform: Affine) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.set_transform(transform);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.set_transform(transform);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.set_transform(transform);
             }
             Renderer::TinySkia(v) => {
@@ -421,12 +498,16 @@ impl floem_renderer::Renderer for Renderer {
 
     fn set_z_index(&mut self, z_index: i32) {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(v) => {
                 v.set_z_index(z_index);
             }
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(v) => {
+                v.set_z_index(z_index);
+            }
+            #[cfg(feature = "win")]
+            Renderer::Win(v) => {
                 v.set_z_index(z_index);
             }
             Renderer::TinySkia(v) => {
@@ -438,10 +519,12 @@ impl floem_renderer::Renderer for Renderer {
 
     fn finish(&mut self) -> Option<peniko::ImageBrush> {
         match self {
-            #[cfg(feature = "vello")]
+            #[cfg(all(feature = "vello", not(feature = "win")))]
             Renderer::Vello(r) => r.finish(),
-            #[cfg(not(feature = "vello"))]
+            #[cfg(all(not(feature = "vello"), not(feature = "win")))]
             Renderer::Vger(r) => r.finish(),
+            #[cfg(feature = "win")]
+            Renderer::Win(r) => r.finish(),
             Renderer::TinySkia(r) => r.finish(),
             Renderer::Uninitialized { .. } => None,
         }
