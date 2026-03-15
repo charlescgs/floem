@@ -28,7 +28,6 @@ use win_renderer::glyph_atlas::{
     create_system_correction_cbuffer,
 };
 use win_renderer::gpu::GpuDevice;
-use win_renderer::composition::CompositionLayerManager;
 use win_renderer::renderer::BatchRenderer;
 use win_renderer::texture::GpuTexture;
 use win_renderer::util::{LayerCadence, LayerId};
